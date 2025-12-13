@@ -1,45 +1,26 @@
 import sgMail from '@sendgrid/mail';
 import { logger } from '../utils/logger';
 
-let connectionSettings: any;
+const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'Arapoint <noreply@arapoint.com.ng>';
 
-async function getCredentials() {
-  const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
-  const xReplitToken = process.env.REPL_IDENTITY 
-    ? 'repl ' + process.env.REPL_IDENTITY 
-    : process.env.WEB_REPL_RENEWAL 
-    ? 'depl ' + process.env.WEB_REPL_RENEWAL 
-    : null;
+let initialized = false;
 
-  if (!xReplitToken) {
-    throw new Error('X_REPLIT_TOKEN not found for repl/depl');
+function initializeSendGrid() {
+  if (!SENDGRID_API_KEY) {
+    throw new Error('SENDGRID_API_KEY is not configured');
   }
-
-  connectionSettings = await fetch(
-    'https://' + hostname + '/api/v2/connection?include_secrets=true&connector_names=sendgrid',
-    {
-      headers: {
-        'Accept': 'application/json',
-        'X_REPLIT_TOKEN': xReplitToken
-      }
-    }
-  ).then(res => res.json()).then(data => data.items?.[0]);
-
-  if (!connectionSettings || (!connectionSettings.settings.api_key || !connectionSettings.settings.from_email)) {
-    throw new Error('SendGrid not connected');
+  if (!initialized) {
+    sgMail.setApiKey(SENDGRID_API_KEY);
+    initialized = true;
   }
-  return {
-    apiKey: connectionSettings.settings.api_key, 
-    fromEmail: connectionSettings.settings.from_email
-  };
 }
 
 export async function getSendGridClient() {
-  const { apiKey, fromEmail } = await getCredentials();
-  sgMail.setApiKey(apiKey);
+  initializeSendGrid();
   return {
     client: sgMail,
-    fromEmail: fromEmail
+    fromEmail: FROM_EMAIL
   };
 }
 
