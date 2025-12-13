@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2 } from "lucide-react";
+import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useEffect, useState, useCallback } from "react";
@@ -52,6 +52,7 @@ export default function Overview() {
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [generatingAccount, setGeneratingAccount] = useState(false);
+  const [requiresKyc, setRequiresKyc] = useState(false);
 
   const getAuthToken = () => localStorage.getItem('accessToken');
 
@@ -120,6 +121,9 @@ export default function Overview() {
         const response = await walletApi.getVirtualAccount();
         if (response?.account) {
           setVirtualAccount(response.account);
+        }
+        if (response?.requiresKyc) {
+          setRequiresKyc(true);
         }
       } catch (error) {
         console.error('Failed to fetch virtual account:', error);
@@ -252,6 +256,18 @@ export default function Overview() {
                   <span className="text-sm text-muted-foreground">Account Name</span>
                   <span className="font-medium text-sm">{virtualAccount.accountName}</span>
                 </div>
+              </div>
+            ) : requiresKyc ? (
+              <div className="flex flex-col items-center justify-center py-6">
+                <AlertTriangle className="h-10 w-10 text-yellow-500 mb-3" />
+                <p className="text-sm text-muted-foreground mb-1 text-center">KYC Required</p>
+                <p className="text-xs text-muted-foreground mb-3 text-center">Verify your NIN or BVN to generate a virtual account</p>
+                <Link href="/dashboard/identity">
+                  <Button variant="outline">
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                    Complete KYC
+                  </Button>
+                </Link>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6">

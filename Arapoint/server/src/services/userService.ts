@@ -55,20 +55,6 @@ export const userService = {
 
     logger.info('User registered', { userId: newUser.id, email: newUser.email });
 
-    if (virtualAccountService.isConfigured()) {
-      virtualAccountService.generateVirtualAccountForUser(newUser.id)
-        .then(result => {
-          if (result.success) {
-            logger.info('Virtual account auto-generated on registration', { userId: newUser.id });
-          } else {
-            logger.warn('Failed to auto-generate virtual account', { userId: newUser.id, message: result.message });
-          }
-        })
-        .catch(err => {
-          logger.error('Error auto-generating virtual account', { userId: newUser.id, error: err.message });
-        });
-    }
-
     return {
       user: {
         id: newUser.id,

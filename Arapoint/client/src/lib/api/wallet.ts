@@ -59,6 +59,7 @@ export interface VirtualAccount {
 export interface VirtualAccountResponse {
   configured: boolean;
   account?: VirtualAccount;
+  requiresKyc?: boolean;
 }
 
 export interface VirtualAccountStatusResponse {

@@ -58,6 +58,13 @@ export const virtualAccountService = {
 
     const user = userResult[0];
 
+    if (!user.nin && !user.bvn) {
+      return {
+        success: false,
+        message: 'Please verify your NIN or BVN first to generate a virtual account. Go to Identity Verification to complete KYC.',
+      };
+    }
+
     const result = await payvesselService.createVirtualAccount({
       email: user.email,
       name: user.name,
@@ -116,6 +123,7 @@ export const virtualAccountService = {
   async getVirtualAccount(userId: string): Promise<{
     configured: boolean;
     shouldGenerate?: boolean;
+    requiresKyc?: boolean;
     account?: {
       bankName: string;
       accountNumber: string;
@@ -145,6 +153,22 @@ export const virtualAccountService = {
         configured: false,
         message: 'Payment gateway not configured',
       };
+    }
+
+    const userResult = await db.select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (userResult.length > 0) {
+      const user = userResult[0];
+      if (!user.nin && !user.bvn) {
+        return {
+          configured: true,
+          requiresKyc: true,
+          message: 'Please verify your NIN or BVN to generate a virtual account',
+        };
+      }
     }
 
     return {
