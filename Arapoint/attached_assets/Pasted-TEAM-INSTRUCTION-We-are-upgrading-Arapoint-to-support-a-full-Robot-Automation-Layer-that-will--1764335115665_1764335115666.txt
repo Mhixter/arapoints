@@ -1,0 +1,192 @@
+TEAM INSTRUCTION:  
+We are upgrading Arapoint to support a full “Robot Automation Layer” that will allow our 
+system to perform tasks on behalf of users on external websites that do not provide a public API.  
+This layer must be fully internal, safe, modular, and integrated with our existing codebase.
+
+Below are the exact requirements. Implement them without rewriting any existing logic.
+
+==========================================================
+1. ADD ROLE-BASED ACCESS CONTROL (RBAC)
+==========================================================
+Roles:
+- ADMIN
+- USER
+
+Backend requirements:
+- Add "role" field to the user model/table (default = USER).
+- Include role inside JWT payload.
+- Create middleware: requireAuth (checks token)
+- Create middleware: requireAdmin (only allows admin pages)
+- Protect all admin modules:
+    /admin/dashboard
+    /admin/identity
+    /admin/bvn
+    /admin/education
+    /admin/vtu
+    /admin/users
+    /admin/analytics
+
+Frontend requirements:
+- Add admin route guard (redirect non-admin users).
+- Only show admin sidebar items for ADMIN role.
+- Add user role management page.
+- Endpoint to promote/demote user:
+    PUT /admin/users/:id/role
+
+Do not rewrite existing pages. Only extend with RBAC.
+
+
+==========================================================
+2. IMPLEMENT “ROBOT AUTOMATION LAYER”
+==========================================================
+Purpose:
+The robot will use our OWN verified, approved accounts (not user accounts)  
+to log in and perform tasks on external websites that do not provide APIs.
+
+Core components to build:
+
+-------------------------------------
+A. TASK MODEL (DATABASE)
+-------------------------------------
+Create “tasks” table:
+
+id  
+userId  
+serviceType (waec, neco, jamb, nin, etc)  
+payload (JSON containing user input)  
+status (pending, processing, completed, failed)  
+result (JSON)  
+errorMessage  
+createdAt  
+updatedAt
+
+-------------------------------------
+B. QUEUE SYSTEM
+-------------------------------------
+Implement Redis + BullMQ (or queue library already used in Arapoint).
+
+Queues:
+- identityQueue
+- educationQueue
+- vtuQueue
+- bvnQueue
+
+Each incoming user request is added to the correct queue.
+
+-------------------------------------
+C. ROBOT WORKER
+-------------------------------------
+Create a background worker service named:
+"robot-worker.js" (or worker folder)
+
+Responsibilities:
+1. Listen to queued tasks
+2. Launch headless browser using Playwright
+3. Login using OUR internal approved accounts (credentials from ENV)
+4. Navigate and perform the required automation steps
+5. Extract result (HTML, text, screenshot, PDF, etc.)
+6. Save result back to tasks table
+7. Mark task as completed or failed
+
+Important:
+- Store session cookies to reduce login time
+- Implement retry logic (3 attempts)
+- Use device fingerprinting to avoid detection
+- Handle timeouts
+- Never expose login credentials to frontend
+
+-------------------------------------
+D. INTERNAL API LAYER
+-------------------------------------
+Create endpoints:
+
+POST /api/tasks/create  
+→ Accepts user data and creates a pending task
+
+GET /api/tasks/:id/status  
+→ Returns task status and result
+
+Admin endpoints:
+GET /admin/tasks  
+GET /admin/tasks/:id  
+PUT /admin/tasks/:id/retry  
+DELETE /admin/tasks/:id  
+
+-------------------------------------
+E. SERVICE MODULES
+-------------------------------------
+Create service modules for each automation:
+
+services/waec.bot.js  
+services/neco.bot.js  
+services/bvn.bot.js  
+services/identity.bot.js  
+services/vtu.bot.js
+
+Each module exports a function:
+runTask(taskData, browser, page)
+
+Each module contains:
+- Navigation steps
+- Form submission
+- Result extraction
+- Error handling
+
+-------------------------------------
+F. FRONTEND FLOW
+-------------------------------------
+User Flow:
+1. User submits request
+2. Frontend POST → /api/tasks/create
+3. Frontend polls /api/tasks/:id/status every 3 seconds
+4. When completed, display result immediately
+
+Admin Flow:
+1. Admin sees all tasks (pending, processing, failed)
+2. Admin can manually retry failed tasks
+3. Admin can monitor robot logs & processing speed
+
+-------------------------------------
+G. ROBOT MONITORING PANEL
+-------------------------------------
+Add admin page:
+Admin → Robot Monitor
+
+Features:
+- Live running tasks
+- Queues length
+- Failed tasks
+- System performance
+- Robot online/offline status
+
+
+==========================================================
+3. SECURITY RULES
+==========================================================
+- External login credentials stored ONLY in server environment variables
+- No credentials or cookies ever sent to frontend
+- All automation stays internal server-side
+- No bypassing or hacking of protected systems
+- Follow website terms & automation policy
+
+
+==========================================================
+4. NON-NEGOTIABLES
+==========================================================
+- DO NOT rewrite existing Arapoint pages
+- DO NOT change existing routes unless required
+- Build automation as an extension, not a replacement
+- Keep code modular for easy future services
+- Document each automation step
+- Push changes through Git in a dedicated branch: feature/robot-layer
+
+==========================================================
+DELIVERABLES
+==========================================================
+1. Updated database schema
+2. Queue + worker implementation
+3. Bot modules
+4. RBAC system
+5. API endpoints
+6. Frontend screens (user + admin)
+7. Complete documentation

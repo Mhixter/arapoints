@@ -1,0 +1,81 @@
+# Dependencies
+node_modules
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist
+build/
+.cache/
+.parcel-cache/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# Puppeteer
+.chrome/
+
+# Redis
+dump.rdb
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.tar.gz
+
+# Server
+server/public
+vite.config.ts.*
+
+# Database files (for local SQLite if used)
+*.sqlite
+*.sqlite3
+*.db
+
+# Secrets (never commit these)
+*.pem
+*.key
+secrets/
+
+# Generated files
+generated/
+.generated/
+
+# Python (if any scripts)
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Uploaded files
+uploads/
+public/uploads/

@@ -1,0 +1,194 @@
+{
+  "identity": {
+    "nin": {
+      "provider": "nimc_portal",
+      "fallback": "verifyme_api",
+      "enabled": true,
+      "description": "National Identification Number verification"
+    },
+    "bvn": {
+      "provider": "nibss_portal",
+      "fallback": "paystack_bvn",
+      "enabled": true,
+      "description": "Bank Verification Number lookup"
+    }
+  },
+  "education": {
+    "jamb": {
+      "provider": "jamb_portal",
+      "fallback": null,
+      "enabled": true,
+      "description": "JAMB result verification"
+    },
+    "waec": {
+      "provider": "waec_portal",
+      "fallback": "waec_scratch_card",
+      "enabled": true,
+      "description": "WAEC result verification"
+    },
+    "neco": {
+      "provider": "neco_portal",
+      "fallback": null,
+      "enabled": true,
+      "description": "NECO result verification"
+    },
+    "nabteb": {
+      "provider": "nabteb_portal",
+      "fallback": null,
+      "enabled": true,
+      "description": "NABTEB result verification"
+    },
+    "nbais": {
+      "provider": "nbais_portal",
+      "fallback": null,
+      "enabled": true,
+      "description": "NBAIS result verification"
+    }
+  },
+  "government": {
+    "birth_certificate": {
+      "provider": "npc_portal",
+      "fallback": null,
+      "enabled": true,
+      "description": "Birth certificate attestation"
+    }
+  },
+  "vtu": {
+    "airtime": {
+      "provider": "vtbiz_api",
+      "fallback": "reloadly_api",
+      "enabled": true,
+      "description": "Airtime top-up services"
+    },
+    "data": {
+      "provider": "vtbiz_api",
+      "fallback": "reloadly_api",
+      "enabled": true,
+      "description": "Data bundle services"
+    }
+  },
+  "utilities": {
+    "electricity": {
+      "provider": "buypower_api",
+      "fallback": "baxi_api",
+      "enabled": true,
+      "description": "Electricity bill payment"
+    },
+    "cable": {
+      "provider": "baxi_api",
+      "fallback": "vtpass_api",
+      "enabled": true,
+      "description": "Cable TV subscription"
+    }
+  },
+  "available_providers": {
+    "identity": {
+      "nimc_portal": {
+        "type": "rpa",
+        "name": "NIMC Direct Portal",
+        "requires": ["NIMC_USERNAME", "NIMC_PASSWORD"]
+      },
+      "nibss_portal": {
+        "type": "rpa",
+        "name": "NIBSS Direct Portal",
+        "requires": ["NIBSS_USERNAME", "NIBSS_PASSWORD"]
+      },
+      "verifyme_api": {
+        "type": "api",
+        "name": "VerifyMe API",
+        "requires": ["VERIFYME_API_KEY"],
+        "docs": "https://docs.verifyme.ng"
+      },
+      "paystack_bvn": {
+        "type": "api",
+        "name": "Paystack BVN API",
+        "requires": ["PAYSTACK_SECRET_KEY"],
+        "docs": "https://paystack.com/docs/identity-verification/bvn"
+      },
+      "youverify_api": {
+        "type": "api",
+        "name": "Youverify API",
+        "requires": ["YOUVERIFY_API_KEY"],
+        "docs": "https://docs.youverify.co"
+      }
+    },
+    "education": {
+      "jamb_portal": {
+        "type": "rpa",
+        "name": "JAMB Direct Portal",
+        "requires": ["JAMB_USERNAME", "JAMB_PASSWORD"]
+      },
+      "waec_portal": {
+        "type": "rpa",
+        "name": "WAEC Direct Portal",
+        "requires": ["WAEC_USERNAME", "WAEC_PASSWORD"]
+      },
+      "waec_scratch_card": {
+        "type": "api",
+        "name": "WAEC Scratch Card API",
+        "requires": ["WAEC_CARD_VENDOR_KEY"]
+      },
+      "neco_portal": {
+        "type": "rpa",
+        "name": "NECO Direct Portal",
+        "requires": ["NECO_USERNAME", "NECO_PASSWORD"]
+      },
+      "nabteb_portal": {
+        "type": "rpa",
+        "name": "NABTEB Direct Portal",
+        "requires": ["NABTEB_USERNAME", "NABTEB_PASSWORD"]
+      },
+      "nbais_portal": {
+        "type": "rpa",
+        "name": "NBAIS Direct Portal",
+        "requires": ["NBAIS_USERNAME", "NBAIS_PASSWORD"]
+      }
+    },
+    "vtu": {
+      "vtbiz_api": {
+        "type": "api",
+        "name": "VTBiz API",
+        "requires": ["VTBIZ_API_KEY", "VTBIZ_SECRET_KEY"],
+        "docs": "https://vtbiz.net/api-documentation"
+      },
+      "reloadly_api": {
+        "type": "api",
+        "name": "Reloadly API",
+        "requires": ["RELOADLY_CLIENT_ID", "RELOADLY_CLIENT_SECRET"],
+        "docs": "https://developers.reloadly.com"
+      },
+      "vtpass_api": {
+        "type": "api",
+        "name": "VTPass API",
+        "requires": ["VTPASS_API_KEY", "VTPASS_SECRET_KEY"],
+        "docs": "https://vtpass.com/documentation"
+      },
+      "flutterwave_bills": {
+        "type": "api",
+        "name": "Flutterwave Bills",
+        "requires": ["FLUTTERWAVE_SECRET_KEY"],
+        "docs": "https://developer.flutterwave.com/docs/bills"
+      }
+    },
+    "utilities": {
+      "buypower_api": {
+        "type": "api",
+        "name": "BuyPower API",
+        "requires": ["BUYPOWER_API_KEY", "BUYPOWER_SECRET_KEY"],
+        "docs": "https://buypower.ng/developer"
+      },
+      "baxi_api": {
+        "type": "api",
+        "name": "Baxi API",
+        "requires": ["BAXI_API_KEY"],
+        "docs": "https://baxi.com.ng/documentation"
+      },
+      "vtpass_api": {
+        "type": "api",
+        "name": "VTPass API",
+        "requires": ["VTPASS_API_KEY", "VTPASS_SECRET_KEY"],
+        "docs": "https://vtpass.com/documentation"
+      }
+    }
+  }
+}

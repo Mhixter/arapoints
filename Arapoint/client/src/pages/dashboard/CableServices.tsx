@@ -1,0 +1,388 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tv, Loader2, AlertCircle, ArrowLeft, Check, UserCheck, History, Receipt, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "wouter";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { servicesApi } from "@/lib/api/services";
+import dstvLogo from '@assets/image_1764220648314.png';
+import gotvLogo from '@assets/image_1764220696767.png';
+import startimesLogo from '@assets/image_1764220739683.png';
+
+const ProviderLogo = ({ name, image }: { name: string, image?: string }) => {
+  if (image) {
+    return <img src={image} alt={name} className="h-16 w-16 object-contain" />;
+  }
+  return <div className="h-16 w-16 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-primary">{name.substring(0, 3).toUpperCase()}</div>;
+};
+
+const getAuthToken = () => localStorage.getItem('accessToken');
+
+export default function CableServices() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [formData, setFormData] = useState<any>({});
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
+  const [packages, setPackages] = useState<any[]>([]);
+  const [loadingPackages, setLoadingPackages] = useState(false);
+  const [history, setHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const { data: dashboardData } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: servicesApi.dashboard.getStats,
+    staleTime: 30000,
+  });
+
+  const cableTotal = dashboardData?.stats?.cableTotal || 0;
+  const cableSuccess = dashboardData?.stats?.cableSuccess || 0;
+
+  useEffect(() => {
+    if (formData.provider) {
+      fetchPackages(formData.provider);
+    }
+  }, [formData.provider]);
+
+  const fetchPackages = async (provider: string) => {
+    setLoadingPackages(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/cable/packages/${provider}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setPackages(data.data.packages || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch packages:', error);
+    } finally {
+      setLoadingPackages(false);
+    }
+  };
+
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/cable/history?limit=50', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setHistory(data.data.history || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch history:', error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+    if (field === 'provider') {
+      setCustomerInfo(null);
+      setFormData((prev: any) => ({ ...prev, package: '', amount: '' }));
+    }
+  };
+
+  const handleValidate = async () => {
+    if (!formData.provider || !formData.iucNumber) {
+      toast({ title: "Missing Information", description: "Please select provider and enter smartcard number.", variant: "destructive" });
+      return;
+    }
+    setValidating(true);
+    setCustomerInfo(null);
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/cable/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ provider: formData.provider, smartcardNumber: formData.iucNumber })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setCustomerInfo(data.data);
+        toast({ title: "Validated", description: `Customer: ${data.data.customerName}` });
+      } else {
+        toast({ title: "Validation Failed", description: data.message || "Could not validate smartcard", variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Validation failed", variant: "destructive" });
+    } finally {
+      setValidating(false);
+    }
+  };
+
+  const handlePackageSelect = (packageCode: string) => {
+    const selectedPkg = packages.find(p => p.variation_code === packageCode);
+    if (selectedPkg) {
+      setFormData((prev: any) => ({ ...prev, package: packageCode, packageName: selectedPkg.name, amount: parseFloat(selectedPkg.variation_amount) }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.provider || !formData.iucNumber || !formData.package) {
+      toast({ title: "Missing Information", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+    setShowConfirmation(true);
+  };
+
+  const handleConfirm = async () => {
+    setLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch('/api/cable/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ provider: formData.provider, smartcardNumber: formData.iucNumber, package: formData.package, amount: formData.amount, phone: formData.phone || '08000000000' })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        toast({ title: "Success!", description: "Cable subscription purchased successfully." });
+        setShowConfirmation(false);
+        setSelectedTransaction({ ...data.data, provider: formData.provider, smartcardNumber: formData.iucNumber, packageName: formData.packageName });
+        setShowReceipt(true);
+        setFormData({});
+        setCustomerInfo(null);
+        queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        fetchHistory();
+      } else {
+        toast({ title: "Failed", description: data.message || "Cable subscription failed", variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Transaction failed", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const viewReceipt = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setShowReceipt(true);
+  };
+
+  const printReceipt = () => {
+    window.print();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="bg-primary text-primary-foreground border-none">
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium opacity-80">Total Subscriptions</p>
+              <h3 className="text-3xl font-bold mt-1">{cableTotal.toLocaleString()}</h3>
+            </div>
+            <div className="h-12 w-12 bg-white/20 rounded-full flex items-center justify-center"><Tv className="h-6 w-6" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Successful Transactions</p>
+              <h3 className="text-3xl font-bold mt-1">{cableSuccess.toLocaleString()}</h3>
+            </div>
+            <div className="h-12 w-12 bg-muted rounded-full flex items-center justify-center"><Check className="h-6 w-6 text-green-600" /></div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Link href="/dashboard/subscriptions">
+          <Button variant="ghost" size="icon" className="rounded-full"><ArrowLeft className="h-5 w-5" /></Button>
+        </Link>
+        <div>
+          <h2 className="text-3xl font-heading font-bold tracking-tight flex items-center gap-2">
+            <Tv className="h-8 w-8 text-red-600" />Cable TV & Streaming
+          </h2>
+          <p className="text-muted-foreground">Subscribe to DSTV, GOtv, and Startimes</p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="buy" onValueChange={(val) => val === 'history' && fetchHistory()}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="buy">Buy Subscription</TabsTrigger>
+          <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />Transaction History</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="buy">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Buy Cable Subscription</CardTitle>
+              <CardDescription>Select a provider and choose your package. Sandbox test smartcard: 1212121212</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Cable Provider</Label>
+                  <div className="flex gap-2 mb-3">
+                    <ProviderLogo name="DST" image={dstvLogo} />
+                    <ProviderLogo name="GOT" image={gotvLogo} />
+                    <ProviderLogo name="STA" image={startimesLogo} />
+                  </div>
+                  <Select value={formData.provider || ''} onValueChange={(val) => handleInputChange('provider', val)}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Select Provider" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="dstv">DSTV</SelectItem>
+                      <SelectItem value="gotv">GOtv</SelectItem>
+                      <SelectItem value="startimes">Startimes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>IUC/Smartcard Number</Label>
+                  <div className="flex gap-2">
+                    <Input placeholder="Enter Card Number" className="flex-1" value={formData.iucNumber || ''} onChange={(e) => handleInputChange('iucNumber', e.target.value)} />
+                    <Button type="button" variant="outline" onClick={handleValidate} disabled={validating}>
+                      {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </div>
+                {customerInfo && (
+                  <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2"><Check className="h-5 w-5 text-green-600" /><span className="font-medium text-green-700 dark:text-green-400">Customer Verified</span></div>
+                      <p className="text-sm"><strong>Name:</strong> {customerInfo.customerName}</p>
+                      <p className="text-sm"><strong>Current Package:</strong> {customerInfo.currentPackage}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                <div className="space-y-2">
+                  <Label>Package</Label>
+                  <Select value={formData.package || ''} onValueChange={handlePackageSelect} disabled={loadingPackages || packages.length === 0}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder={loadingPackages ? "Loading packages..." : "Select Package"} /></SelectTrigger>
+                    <SelectContent>
+                      {packages.map((pkg) => (
+                        <SelectItem key={pkg.variation_code} value={pkg.variation_code}>{pkg.name} - ₦{parseInt(pkg.variation_amount).toLocaleString()}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {formData.amount && (
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Amount to Pay</p>
+                    <p className="text-2xl font-bold">₦{formData.amount.toLocaleString()}</p>
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={loading || !formData.package}>
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Continue"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><History className="h-5 w-5" />Transaction History</CardTitle>
+              <CardDescription>View all your cable TV subscriptions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingHistory ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+              ) : history.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Tv className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No transactions yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((tx) => (
+                    <div key={tx.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                          <Tv className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{tx.provider?.toUpperCase()} - {tx.package}</p>
+                          <p className="text-sm text-muted-foreground">Smartcard: {tx.smartcardNumber}</p>
+                          <p className="text-xs text-muted-foreground">{new Date(tx.createdAt).toLocaleString()}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold">₦{parseFloat(tx.amount).toLocaleString()}</p>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${tx.status === 'completed' ? 'bg-green-100 text-green-700' : tx.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{tx.status}</span>
+                        <Button variant="ghost" size="sm" className="ml-2" onClick={() => viewReceipt(tx)}><Receipt className="h-4 w-4" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><AlertCircle className="h-5 w-5 text-amber-500" />Confirm Cable Purchase</DialogTitle>
+            <DialogDescription>Please review the details before confirming.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="border-l-4 border-primary pl-4"><p className="text-sm text-muted-foreground">Provider</p><p className="font-semibold uppercase">{formData.provider}</p></div>
+            <div className="border-l-4 border-primary pl-4"><p className="text-sm text-muted-foreground">Smartcard Number</p><p className="font-semibold">{formData.iucNumber}</p></div>
+            {customerInfo && <div className="border-l-4 border-green-500 pl-4"><p className="text-sm text-muted-foreground">Customer Name</p><p className="font-semibold">{customerInfo.customerName}</p></div>}
+            <div className="border-l-4 border-primary pl-4"><p className="text-sm text-muted-foreground">Package</p><p className="font-semibold">{formData.packageName}</p></div>
+            <div className="border-l-4 border-primary pl-4"><p className="text-sm text-muted-foreground">Amount</p><p className="font-semibold text-lg">₦{formData.amount?.toLocaleString()}</p></div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowConfirmation(false)} disabled={loading}>Cancel</Button>
+            <Button onClick={handleConfirm} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Confirm Payment</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
+        <DialogContent className="sm:max-w-md print:max-w-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600"><Receipt className="h-5 w-5" />Transaction Receipt</DialogTitle>
+          </DialogHeader>
+          {selectedTransaction && (
+            <div className="space-y-4 py-4" id="receipt-content">
+              <div className="text-center border-b pb-4">
+                <h3 className="text-xl font-bold">ARAPOINT</h3>
+                <p className="text-sm text-muted-foreground">Cable TV Subscription</p>
+              </div>
+              <div className="space-y-3">
+                <div className="flex justify-between"><span className="text-muted-foreground">Reference:</span><span className="font-mono text-sm">{selectedTransaction.reference}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Transaction ID:</span><span className="font-mono text-sm">{selectedTransaction.transactionId}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Provider:</span><span className="font-semibold uppercase">{selectedTransaction.provider}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Smartcard:</span><span className="font-semibold">{selectedTransaction.smartcardNumber}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Package:</span><span className="font-semibold">{selectedTransaction.packageName || selectedTransaction.package}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-bold text-lg">₦{parseFloat(selectedTransaction.amount).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Status:</span><span className={`font-semibold ${selectedTransaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{selectedTransaction.status?.toUpperCase()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Date:</span><span>{new Date(selectedTransaction.createdAt || Date.now()).toLocaleString()}</span></div>
+              </div>
+              <div className="text-center border-t pt-4 text-xs text-muted-foreground">
+                <p>Thank you for using Arapoint</p>
+                <p>For support, contact support@arapoint.com</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowReceipt(false)}>Close</Button>
+            <Button onClick={printReceipt}><Download className="h-4 w-4 mr-2" />Print Receipt</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

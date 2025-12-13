@@ -1,0 +1,264 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  jsonb,
+  integer,
+  decimal,
+  date,
+} from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+
+// Users Table
+export const users = pgTable('users', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email', { length: 255 }).unique().notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
+  passwordHash: varchar('password_hash', { length: 255 }),
+  walletBalance: decimal('wallet_balance', { precision: 15, scale: 2 }).default('0'),
+  bvn: varchar('bvn', { length: 11 }),
+  nin: varchar('nin', { length: 11 }),
+  kycStatus: varchar('kyc_status', { length: 50 }).default('pending'),
+  emailVerified: boolean('email_verified').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// OTP Verifications Table
+export const otpVerifications = pgTable('otp_verifications', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email', { length: 255 }).notNull(),
+  otpCode: varchar('otp_code', { length: 6 }).notNull(),
+  purpose: varchar('purpose', { length: 50 }).default('registration'),
+  isUsed: boolean('is_used').default(false),
+  attempts: integer('attempts').default(0),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// RPA Jobs Queue
+export const rpaJobs = pgTable('rpa_jobs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  serviceType: varchar('service_type', { length: 100 }).notNull(),
+  queryData: jsonb('query_data').notNull(),
+  status: varchar('status', { length: 50 }).default('pending'),
+  result: jsonb('result'),
+  errorMessage: text('error_message'),
+  retryCount: integer('retry_count').default(0),
+  maxRetries: integer('max_retries').default(3),
+  priority: integer('priority').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+});
+
+// Bot Credentials
+export const botCredentials = pgTable('bot_credentials', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  serviceName: varchar('service_name', { length: 100 }).notNull().unique(),
+  username: varchar('username', { length: 255 }),
+  passwordHash: varchar('password_hash', { length: 255 }),
+  apiKey: varchar('api_key', { length: 500 }),
+  authToken: varchar('auth_token', { length: 1000 }),
+  tokenExpiry: timestamp('token_expiry'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// BVN Services
+export const bvnServices = pgTable('bvn_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  bvn: varchar('bvn', { length: 11 }),
+  phone: varchar('phone', { length: 20 }),
+  serviceType: varchar('service_type', { length: 50 }),
+  requestId: varchar('request_id', { length: 100 }).unique(),
+  status: varchar('status', { length: 50 }),
+  responseData: jsonb('response_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Education Services
+export const educationServices = pgTable('education_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  serviceType: varchar('service_type', { length: 100 }).notNull(),
+  examYear: integer('exam_year'),
+  registrationNumber: varchar('registration_number', { length: 100 }),
+  status: varchar('status', { length: 50 }),
+  resultData: jsonb('result_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Identity Verifications
+export const identityVerifications = pgTable('identity_verifications', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  verificationType: varchar('verification_type', { length: 100 }),
+  nin: varchar('nin', { length: 11 }),
+  phone: varchar('phone', { length: 20 }),
+  secondEnrollmentId: varchar('second_enrollment_id', { length: 100 }),
+  status: varchar('status', { length: 50 }),
+  verificationData: jsonb('verification_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Birth Attestations
+export const birthAttestations = pgTable('birth_attestations', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  fullName: varchar('full_name', { length: 255 }),
+  dateOfBirth: date('date_of_birth'),
+  registrationNumber: varchar('registration_number', { length: 100 }),
+  status: varchar('status', { length: 50 }),
+  certificateData: jsonb('certificate_data'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Airtime Services
+export const airtimeServices = pgTable('airtime_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  network: varchar('network', { length: 50 }),
+  phoneNumber: varchar('phone_number', { length: 20 }),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  type: varchar('type', { length: 50 }),
+  transactionId: varchar('transaction_id', { length: 100 }).unique(),
+  status: varchar('status', { length: 50 }),
+  reference: varchar('reference', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Data Services
+export const dataServices = pgTable('data_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  network: varchar('network', { length: 50 }),
+  phoneNumber: varchar('phone_number', { length: 20 }),
+  planName: varchar('plan_name', { length: 100 }),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  type: varchar('type', { length: 50 }),
+  transactionId: varchar('transaction_id', { length: 100 }).unique(),
+  status: varchar('status', { length: 50 }),
+  reference: varchar('reference', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Electricity Services
+export const electricityServices = pgTable('electricity_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  discoName: varchar('disco_name', { length: 100 }),
+  meterNumber: varchar('meter_number', { length: 50 }),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  transactionId: varchar('transaction_id', { length: 100 }).unique(),
+  status: varchar('status', { length: 50 }),
+  reference: varchar('reference', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Cable Services
+export const cableServices = pgTable('cable_services', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  provider: varchar('provider', { length: 100 }),
+  smartcardNumber: varchar('smartcard_number', { length: 50 }),
+  package: varchar('package', { length: 100 }),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  transactionId: varchar('transaction_id', { length: 100 }).unique(),
+  status: varchar('status', { length: 50 }),
+  reference: varchar('reference', { length: 100 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Transactions
+export const transactions = pgTable('transactions', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id),
+  transactionType: varchar('transaction_type', { length: 50 }),
+  amount: decimal('amount', { precision: 15, scale: 2 }),
+  paymentMethod: varchar('payment_method', { length: 50 }),
+  referenceId: varchar('reference_id', { length: 100 }),
+  status: varchar('status', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Admin Settings
+export const adminSettings = pgTable('admin_settings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  settingKey: varchar('setting_key', { length: 255 }).unique().notNull(),
+  settingValue: text('setting_value'),
+  description: text('description'),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Admin Roles
+export const adminRoles = pgTable('admin_roles', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar('name', { length: 50 }).unique().notNull(),
+  description: text('description'),
+  permissions: jsonb('permissions').default('[]'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Admin Users
+export const adminUsers = pgTable('admin_users', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar('email', { length: 255 }).unique().notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  roleId: uuid('role_id').references(() => adminRoles.id),
+  isActive: boolean('is_active').default(true),
+  lastLogin: timestamp('last_login'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Admin Activity Logs
+export const adminActivityLogs = pgTable('admin_activity_logs', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  adminId: uuid('admin_id').references(() => adminUsers.id),
+  action: varchar('action', { length: 100 }).notNull(),
+  resourceType: varchar('resource_type', { length: 100 }),
+  resourceId: varchar('resource_id', { length: 100 }),
+  details: jsonb('details'),
+  ipAddress: varchar('ip_address', { length: 50 }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Virtual Accounts (for Paystack Dedicated Virtual Accounts)
+export const virtualAccounts = pgTable('virtual_accounts', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).notNull().unique(),
+  paystackCustomerId: varchar('paystack_customer_id', { length: 100 }),
+  paystackCustomerCode: varchar('paystack_customer_code', { length: 100 }),
+  dedicatedAccountId: varchar('dedicated_account_id', { length: 100 }),
+  bankName: varchar('bank_name', { length: 100 }),
+  bankCode: varchar('bank_code', { length: 20 }),
+  accountNumber: varchar('account_number', { length: 20 }),
+  accountName: varchar('account_name', { length: 255 }),
+  providerSlug: varchar('provider_slug', { length: 50 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Service Pricing
+export const servicePricing = pgTable('service_pricing', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  serviceType: varchar('service_type', { length: 100 }).unique().notNull(),
+  serviceName: varchar('service_name', { length: 255 }).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  description: text('description'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

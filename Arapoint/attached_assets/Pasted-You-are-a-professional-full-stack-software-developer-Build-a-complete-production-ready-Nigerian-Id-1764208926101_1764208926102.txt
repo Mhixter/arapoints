@@ -1,0 +1,69 @@
+You are a professional full-stack software developer. Build a complete, production-ready Nigerian Identity Verification and Management Platform called "ARA Verify" that includes the following features:
+
+1. **User Authentication & KYC**
+   - Email/phone signup with OTP verification.
+   - Role-based access (Admin, User, SuperAdmin).
+   - Profile management (photo, NIN, BVN, education, address).
+   - Password reset and 2FA.
+
+2. **Identity Lookup & Verification**
+   - NIN lookup: validate NIN, retrieve demographic info, and download NIN slip.
+   - BVN lookup: validate BVN and retrieve KYC info.
+   - Integration with telecom SIM registration verification APIs (optional).
+   - User selfie vs NIN photo facial match for verification.
+
+3. **Education Verification**
+   - Verify JAMB registration/admission.
+   - Verify WAEC/NECO results using PINs or QR codes.
+   - Generate downloadable verification certificates.
+
+4. **Government & Compliance Validation**
+   - IPE clearance validation.
+   - Tax Identification Number (TIN) verification.
+   - CAC business name lookup.
+
+5. **VTU & Digital Services**
+   - Airtime and data bundle top-ups.
+   - Cable TV subscription (DSTV/GOtv/Startimes).
+   - Electricity token recharge.
+   - Sell education result checking PINs (JAMB, WAEC, NECO).
+
+6. **Subscription & Payment**
+   - Free and premium user tiers.
+   - Payment gateway integration (Flutterwave, Paystack).
+   - Credit/deduction system for premium verifications.
+   - Transaction logs and billing history.
+
+7. **Admin Panel**
+   - Dashboard: user activity, verification stats, and revenue.
+   - Manage users, verifications, transactions.
+   - Generate reports in CSV/PDF.
+
+8. **Notifications & Alerts**
+   - Email/SMS notifications for verification results.
+   - Alerts for failed transactions or verification issues.
+
+9. **Security & Compliance**
+   - Data encrypted in transit and at rest.
+   - Fully NDPA-compliant.
+   - Audit logs for all actions.
+   - Rate-limiting, anti-bot protection, and brute-force prevention.
+
+10. **Tech Stack**
+    - Frontend: React.js or Next.js with Tailwind CSS.
+    - Backend: Node.js/Express.js or NestJS.
+    - Database: PostgreSQL (or Supabase for serverless).
+    - File storage: AWS S3 or Supabase Storage.
+    - APIs: NIMC, CBN/BVN, JAMB, WAEC, NECO, VTU aggregator APIs.
+    - Hosting: Vercel/Render/Netlify for frontend, Railway/Render/Heroku for backend.
+    - CI/CD: GitHub Actions.
+
+**Requirements:**
+- Build everything fully integrated.
+- Include **all database schemas**, API endpoints, and frontend pages.
+- Include **admin panel, user dashboard, and subscription/payment flow**.
+- Include **comments in code explaining all major parts**.
+- Output should be **ready-to-deploy**, with instructions for environment variables, API keys, and hosting.
+- Include seed data for testing (fake users, sample verifications, transactions).
+
+Deliver **all code, configurations, and instructions in a single output** so the project is fully complete and deployable without further input. Do not ask for any clarification or additional input during generation.  

@@ -1,0 +1,70 @@
+services:
+  - type: web
+    name: arapoint-api
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+    autoDeploy: true
+
+  - type: worker
+    name: arapoint-rpa
+    runtime: node
+    region: frankfurt
+    plan: starter
+    buildCommand: cd rpa && npm install && npm run build
+    startCommand: cd rpa && npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: NIMC_USERNAME
+        sync: false
+      - key: NIMC_PASSWORD
+        sync: false
+      - key: JAMB_USERNAME
+        sync: false
+      - key: JAMB_PASSWORD
+        sync: false
+      - key: VTBIZ_API_KEY
+        sync: false
+      - key: VTBIZ_SECRET_KEY
+        sync: false
+      - key: BUYPOWER_API_KEY
+        sync: false
+      - key: BUYPOWER_SECRET_KEY
+        sync: false
+    autoDeploy: true
+
+databases:
+  - name: arapoint-db
+    region: frankfurt
+    plan: starter
+    databaseName: arapoint
+    user: arapoint
