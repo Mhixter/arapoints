@@ -7,7 +7,7 @@ export const jambSchema = z.object({
 
 export const waecSchema = z.object({
   registrationNumber: z.string().min(5, 'Examination number is required'),
-  examYear: z.number().min(2000).max(new Date().getFullYear()),
+  examYear: z.number().min(2000).max(2026),
   examType: z.enum(['WASSCE', 'GCE']).default('WASSCE'),
   cardSerialNumber: z.string().min(10, 'Card serial number is required').optional(),
   cardPin: z.string().min(10, 'Card PIN is required').optional(),
