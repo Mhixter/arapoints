@@ -11,7 +11,9 @@ import {
   XCircle,
   Clock,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Image
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
@@ -86,10 +88,10 @@ export default function VerificationHistory() {
     return null;
   };
 
-  const handleDownload = async (jobId: string) => {
-    setDownloading(jobId);
+  const handleDownload = async (jobId: string, format: 'pdf' | 'screenshot' = 'pdf') => {
+    setDownloading(`${jobId}_${format}`);
     try {
-      const response = await fetch(`/api/education/job/${jobId}/download`, {
+      const response = await fetch(`/api/education/job/${jobId}/download?format=${format}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -126,6 +128,25 @@ export default function VerificationHistory() {
     } finally {
       setDownloading(null);
     }
+  };
+
+  const handleDirectDownload = (record: EducationServiceRecord, type: 'pdf' | 'screenshot') => {
+    const data = type === 'pdf' ? record.resultData?.pdfBase64 : record.resultData?.screenshotBase64;
+    if (!data) return;
+    
+    const link = document.createElement('a');
+    link.href = type === 'pdf' 
+      ? `data:application/pdf;base64,${data}`
+      : `data:image/png;base64,${data}`;
+    link.download = type === 'pdf' 
+      ? `${record.serviceType}_result_${record.registrationNumber}.pdf`
+      : `${record.serviceType}_result_${record.registrationNumber}.png`;
+    link.click();
+    
+    toast({
+      title: "Download Started",
+      description: `Your ${type.toUpperCase()} is being downloaded.`,
+    });
   };
 
   return (
@@ -176,8 +197,9 @@ export default function VerificationHistory() {
         <div className="space-y-4">
           {history.map((record) => {
             const errorMessage = getErrorMessage(record);
-            const hasDownload = record.status === 'completed' && record.resultData && 
-              (record.resultData.pdfBase64 || record.resultData.screenshotBase64);
+            const hasPdf = record.resultData?.pdfBase64;
+            const hasScreenshot = record.resultData?.screenshotBase64;
+            const hasAnyDownload = hasPdf || hasScreenshot;
 
             return (
               <Card key={record.id} className="overflow-hidden">
@@ -187,6 +209,12 @@ export default function VerificationHistory() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold">{getServiceName(record.serviceType)}</h3>
                         {getStatusBadge(record.status)}
+                        {hasAnyDownload && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Download className="h-3 w-3 mr-1" />
+                            Result Available
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground space-y-1">
                         <p>Registration: <span className="font-mono">{record.registrationNumber || 'N/A'}</span></p>
@@ -200,19 +228,25 @@ export default function VerificationHistory() {
                         </div>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      {hasDownload && (
+                    <div className="flex gap-2 flex-wrap">
+                      {hasPdf && (
                         <Button
                           size="sm"
-                          onClick={() => handleDownload(record.jobId)}
-                          disabled={downloading === record.jobId}
+                          variant="default"
+                          onClick={() => handleDirectDownload(record, 'pdf')}
                         >
-                          {downloading === record.jobId ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Download className="h-4 w-4 mr-2" />
-                          )}
-                          Download
+                          <FileText className="h-4 w-4 mr-2" />
+                          PDF
+                        </Button>
+                      )}
+                      {hasScreenshot && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDirectDownload(record, 'screenshot')}
+                        >
+                          <Image className="h-4 w-4 mr-2" />
+                          Screenshot
                         </Button>
                       )}
                     </div>

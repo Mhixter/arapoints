@@ -391,29 +391,28 @@ export class WAECWorker extends BaseWorker {
     let pdfBase64: string | undefined;
     let screenshotBase64: string | undefined;
 
-    if (subjects.length > 0) {
+    // Always capture screenshot/PDF so users can see what happened (even if no subjects found)
+    try {
+      logger.info('Capturing PDF of result page');
+      const pdfBuffer = await (page as any).pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+      });
+      pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+      logger.info('PDF captured successfully', { size: pdfBase64.length });
+    } catch (pdfError: any) {
+      logger.warn('Could not generate PDF, falling back to screenshot', { error: pdfError.message });
+      
       try {
-        logger.info('Capturing PDF of result page');
-        const pdfBuffer = await (page as any).pdf({
-          format: 'A4',
-          printBackground: true,
-          margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+        const screenshotBuffer = await (page as any).screenshot({ 
+          fullPage: true, 
+          type: 'png',
         });
-        pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
-        logger.info('PDF captured successfully', { size: pdfBase64.length });
-      } catch (pdfError: any) {
-        logger.warn('Could not generate PDF, falling back to screenshot', { error: pdfError.message });
-        
-        try {
-          const screenshotBuffer = await (page as any).screenshot({ 
-            fullPage: true, 
-            type: 'png',
-          });
-          screenshotBase64 = Buffer.from(screenshotBuffer).toString('base64');
-          logger.info('Screenshot captured successfully', { size: screenshotBase64.length });
-        } catch (ssError: any) {
-          logger.warn('Could not capture screenshot', { error: ssError.message });
-        }
+        screenshotBase64 = Buffer.from(screenshotBuffer).toString('base64');
+        logger.info('Screenshot captured successfully', { size: screenshotBase64.length });
+      } catch (ssError: any) {
+        logger.warn('Could not capture screenshot', { error: ssError.message });
       }
     }
 
