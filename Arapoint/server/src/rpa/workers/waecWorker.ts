@@ -35,13 +35,13 @@ export class WAECWorker extends BaseWorker {
   protected serviceName = 'waec_service';
 
   private readonly DEFAULT_SELECTORS = {
-    examYearSelect: 'select[name="ExamYear"]',
-    examTypeSelect: 'select[name="ExamType"]',
-    examNumberInput: 'input[name="CandNo"]',
-    cardSerialInput: 'input[name="Serial"]',
-    cardPinInput: 'input[name="Pin"]',
-    submitButton: 'input[type="submit"], button[type="submit"]',
-    resultTable: 'table.resultTable, table#resultTable, .result-table',
+    examYearSelect: 'select[name="ExamYear"], select[name="examYear"], select#ExamYear, select#examYear',
+    examTypeSelect: 'select[name="ExamType"], select[name="examType"], select#ExamType, select#examType',
+    examNumberInput: 'input[name="CandNo"], input[name="examNumber"], input#CandNo, input#examNumber',
+    cardSerialInput: 'input[name="Serial"], input[name="serialNumber"], input#Serial, input#serialNumber',
+    cardPinInput: 'input[name="Pin"], input[name="pin"], input#Pin, input#pin',
+    submitButton: 'input[type="submit"], button[type="submit"], button.submit, input.submit, button[name="submit"], .btn-submit, #submit, button:contains("Submit"), button:contains("Check"), input[value="Submit"], input[value="Check"]',
+    resultTable: 'table.resultTable, table#resultTable, .result-table, table',
     candidateName: '.candidate-name, .name, td:contains("Name")+td',
     errorMessage: '.error, .alert-danger, .error-message',
     subjectRow: 'tr.subject-row, tbody tr',
@@ -217,15 +217,76 @@ export class WAECWorker extends BaseWorker {
     await this.sleep(500);
 
     logger.info('Submitting WAEC form');
-    try {
-      await page.click(selectors.submitButton);
-    } catch {
-      const submitBtn = await page.$('input[type="submit"], button[type="submit"]');
-      if (submitBtn) {
-        await submitBtn.click();
-      } else {
-        throw new Error('Could not find submit button');
+    let submitClicked = false;
+    
+    const submitSelectors = [
+      'input[type="submit"]',
+      'button[type="submit"]',
+      'button.submit',
+      'input.submit',
+      '.btn-submit',
+      '#submit',
+      'button[name="submit"]',
+      'input[value="Submit"]',
+      'input[value="Check"]',
+      'input[value="Check Result"]',
+      'button'
+    ];
+
+    for (const selector of submitSelectors) {
+      try {
+        const btn = await page.$(selector);
+        if (btn) {
+          const isVisible = await page.evaluate((el: Element) => {
+            const style = window.getComputedStyle(el);
+            return style.display !== 'none' && style.visibility !== 'hidden' && (el as HTMLElement).offsetWidth > 0;
+          }, btn);
+          
+          if (isVisible) {
+            await btn.click();
+            logger.info('Clicked submit button', { selector });
+            submitClicked = true;
+            break;
+          }
+        }
+      } catch (e) {
+        continue;
       }
+    }
+
+    if (!submitClicked) {
+      try {
+        submitClicked = await page.evaluate(() => {
+          const forms = Array.from(document.querySelectorAll('form'));
+          for (const form of forms) {
+            const inputs = form.querySelectorAll('input, select');
+            if (inputs.length > 0) {
+              (form as HTMLFormElement).submit();
+              return true;
+            }
+          }
+          
+          const buttons = Array.from(document.querySelectorAll('button, input[type="button"], input[type="submit"]'));
+          for (const btn of buttons) {
+            const text = btn.textContent?.toLowerCase() || (btn as HTMLInputElement).value?.toLowerCase() || '';
+            if (text.includes('submit') || text.includes('check') || text.includes('verify')) {
+              (btn as HTMLElement).click();
+              return true;
+            }
+          }
+          return false;
+        });
+        
+        if (submitClicked) {
+          logger.info('Used JavaScript form submission');
+        }
+      } catch (e: any) {
+        logger.warn('Form submission fallback failed', { error: e.message });
+      }
+    }
+
+    if (!submitClicked) {
+      throw new Error('Could not find submit button. The WAEC portal page structure may have changed.');
     }
 
     logger.info('Waiting for results page');
@@ -339,9 +400,6 @@ export class WAECWorker extends BaseWorker {
     };
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 }
 
 export const waecWorker = new WAECWorker();
