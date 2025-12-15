@@ -22,6 +22,25 @@ export interface EducationCheckRequest {
   registrationNumber: string;
   examYear: number;
   examType?: string;
+  cardSerialNumber?: string;
+  cardPin?: string;
+}
+
+export interface WAECCheckRequest {
+  registrationNumber: string;
+  examYear: number;
+  examType?: 'WASSCE' | 'GCE';
+  cardSerialNumber?: string;
+  cardPin?: string;
+}
+
+export interface JobStatusResponse {
+  jobId: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  resultData?: any;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AirtimeRequest {
@@ -91,13 +110,33 @@ export const servicesApi = {
   },
 
   education: {
-    checkResult: async (examBody: string, data: EducationCheckRequest): Promise<ServiceResponse> => {
-      const response = await apiClient.post<ApiResponse<ServiceResponse>>(`/education/${examBody}/check`, data);
+    checkJAMB: async (data: { registrationNumber: string; examYear?: number }): Promise<{ jobId: string; price: number }> => {
+      const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/jamb', data);
+      return response.data.data;
+    },
+    checkWAEC: async (data: WAECCheckRequest): Promise<{ jobId: string; price: number }> => {
+      const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/waec', data);
+      return response.data.data;
+    },
+    checkNECO: async (data: { registrationNumber: string; examYear?: number }): Promise<{ jobId: string; price: number }> => {
+      const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/neco', data);
+      return response.data.data;
+    },
+    checkNABTEB: async (data: { registrationNumber: string; examYear?: number }): Promise<{ jobId: string; price: number }> => {
+      const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/nabteb', data);
+      return response.data.data;
+    },
+    checkNBAIS: async (data: { registrationNumber: string; examYear?: number }): Promise<{ jobId: string; price: number }> => {
+      const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/nbais', data);
+      return response.data.data;
+    },
+    getJobStatus: async (jobId: string): Promise<JobStatusResponse> => {
+      const response = await apiClient.get<ApiResponse<JobStatusResponse>>(`/education/job/${jobId}`);
       return response.data.data;
     },
     getHistory: async (): Promise<any[]> => {
-      const response = await apiClient.get<ApiResponse<{ services: any[] }>>('/education/history');
-      return response.data.data.services;
+      const response = await apiClient.get<ApiResponse<{ history: any[] }>>('/education/history');
+      return response.data.data.history;
     },
   },
 
