@@ -1,9 +1,11 @@
-import { RPAEngine, createRPAEngine } from '../engine';
+import { Browser, Page } from 'puppeteer';
 import { logger } from '../../utils/logger';
 import { BaseWorker, WorkerResult } from './baseWorker';
 import { db } from '../../config/database';
 import { adminSettings } from '../../db/schema';
 import { eq } from 'drizzle-orm';
+import { browserPool } from '../browserPool';
+import { config } from '../../config/env';
 
 interface WAECQueryData {
   registrationNumber: string;
@@ -31,7 +33,6 @@ interface WAECResult {
 
 export class WAECWorker extends BaseWorker {
   protected serviceName = 'waec_service';
-  private engine: RPAEngine | null = null;
 
   private readonly DEFAULT_SELECTORS = {
     examYearSelect: 'select[name="ExamYear"]',
@@ -53,6 +54,10 @@ export class WAECWorker extends BaseWorker {
       examYear: data.examYear 
     });
 
+    let pooledResource: { browser: Browser; page: Page; release: () => Promise<void> } | null = null;
+    const requestTimeout = config.RPA_REQUEST_TIMEOUT || 45000;
+    let timeoutHandle: NodeJS.Timeout | null = null;
+
     try {
       const portalUrl = await this.getPortalUrl();
       if (!portalUrl) {
@@ -62,33 +67,34 @@ export class WAECWorker extends BaseWorker {
       const customSelectors = await this.getCustomSelectors();
       const selectors = { ...this.DEFAULT_SELECTORS, ...customSelectors };
 
-      this.engine = createRPAEngine({
-        headless: true,
-        timeout: 90000,
-        slowMo: 100,
+      pooledResource = await browserPool.acquire();
+      if (!pooledResource) {
+        return this.createErrorResult('No available browser. System is at capacity, please try again.');
+      }
+
+      const { page } = pooledResource;
+      logger.info('WAEC Worker acquired browser from pool');
+
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => reject(new Error('Request timeout exceeded')), requestTimeout);
       });
 
-      await this.engine.initialize();
-      logger.info('WAEC RPA Engine initialized');
-
-      const result = await this.performVerification(portalUrl, data, selectors);
+      const result = await Promise.race([
+        this.performVerification(page, portalUrl, data, selectors),
+        timeoutPromise
+      ]);
 
       return this.createSuccessResult(result as unknown as Record<string, unknown>);
     } catch (error: any) {
       logger.error('WAEC Worker error', { error: error.message });
-      
-      if (this.engine) {
-        try {
-          const screenshot = await this.engine.takeScreenshot();
-          logger.info('Error screenshot captured');
-          return this.createErrorResult(`${error.message}. Screenshot captured for debugging.`, true);
-        } catch {
-        }
-      }
-      
       return this.createErrorResult(error.message, true);
     } finally {
-      await this.cleanup();
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
+      if (pooledResource) {
+        await pooledResource.release();
+      }
     }
   }
 
@@ -126,35 +132,25 @@ export class WAECWorker extends BaseWorker {
   }
 
   private async performVerification(
+    page: Page,
     portalUrl: string,
     data: WAECQueryData,
     selectors: Record<string, string>
   ): Promise<WAECResult> {
-    if (!this.engine) {
-      throw new Error('RPA Engine not initialized');
-    }
-
     logger.info('Navigating to WAEC Direct portal', { url: portalUrl });
-    await this.engine.navigateTo(portalUrl);
-    await this.engine.sleep(3000);
-
-    const page = this.engine.getPage();
-    if (!page) {
-      throw new Error('Browser page not available');
-    }
+    await page.goto(portalUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await this.sleep(1500);
 
     try {
-      await page.waitForSelector('form, input, select', { timeout: 15000 });
+      await page.waitForSelector('form, input, select', { timeout: 10000 });
     } catch {
-      const screenshot = await this.engine.takeScreenshot();
-      logger.error('Form not found on WAEC page', { screenshot: screenshot.substring(0, 100) });
       throw new Error('Could not find form on WAEC portal. The page may have changed.');
     }
 
     logger.info('Filling WAEC form fields');
 
     try {
-      await this.engine.select(selectors.examYearSelect, data.examYear.toString());
+      await page.select(selectors.examYearSelect, data.examYear.toString());
       logger.info('Selected exam year', { year: data.examYear });
     } catch (e: any) {
       logger.warn('Could not select exam year dropdown, trying alternative', { error: e.message });
@@ -179,7 +175,7 @@ export class WAECWorker extends BaseWorker {
 
     if (data.examType) {
       try {
-        await this.engine.select(selectors.examTypeSelect, data.examType);
+        await page.select(selectors.examTypeSelect, data.examType);
         logger.info('Selected exam type', { type: data.examType });
       } catch {
         logger.warn('Could not select exam type');
@@ -187,7 +183,8 @@ export class WAECWorker extends BaseWorker {
     }
 
     try {
-      await this.engine.type(selectors.examNumberInput, data.registrationNumber);
+      await page.waitForSelector(selectors.examNumberInput, { timeout: 5000 });
+      await page.type(selectors.examNumberInput, data.registrationNumber);
       logger.info('Entered examination number');
     } catch {
       const inputs = await page.$$('input[type="text"]');
@@ -201,7 +198,7 @@ export class WAECWorker extends BaseWorker {
 
     if (data.cardSerialNumber) {
       try {
-        await this.engine.type(selectors.cardSerialInput, data.cardSerialNumber);
+        await page.type(selectors.cardSerialInput, data.cardSerialNumber);
         logger.info('Entered card serial number');
       } catch {
         logger.warn('Could not enter card serial number');
@@ -210,20 +207,20 @@ export class WAECWorker extends BaseWorker {
 
     if (data.cardPin) {
       try {
-        await this.engine.type(selectors.cardPinInput, data.cardPin);
+        await page.type(selectors.cardPinInput, data.cardPin);
         logger.info('Entered card PIN');
       } catch {
         logger.warn('Could not enter card PIN');
       }
     }
 
-    await this.engine.sleep(1000);
+    await this.sleep(500);
 
     logger.info('Submitting WAEC form');
     try {
-      await this.engine.click(selectors.submitButton);
+      await page.click(selectors.submitButton);
     } catch {
-      const submitBtn = await page.$('input[type="submit"], button[type="submit"], button:contains("Submit"), input[value="Submit"]');
+      const submitBtn = await page.$('input[type="submit"], button[type="submit"]');
       if (submitBtn) {
         await submitBtn.click();
       } else {
@@ -232,10 +229,10 @@ export class WAECWorker extends BaseWorker {
     }
 
     logger.info('Waiting for results page');
-    await this.engine.sleep(5000);
+    await this.sleep(2000);
 
     try {
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 30000 });
+      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
     } catch {
       logger.warn('Navigation timeout, checking for results on current page');
     }
@@ -252,15 +249,11 @@ export class WAECWorker extends BaseWorker {
       };
     }
 
-    const result = await this.extractResults(page, data, selectors);
-    
-    const screenshot = await this.engine.takeScreenshot();
-    result.screenshotBase64 = screenshot;
-    
+    const result = await this.extractResults(page, data);
     return result;
   }
 
-  private async checkForError(page: any, errorSelector: string): Promise<string | null> {
+  private async checkForError(page: Page, errorSelector: string): Promise<string | null> {
     try {
       const errorElement = await page.$(errorSelector);
       if (errorElement) {
@@ -282,11 +275,7 @@ export class WAECWorker extends BaseWorker {
     return null;
   }
 
-  private async extractResults(
-    page: any,
-    data: WAECQueryData,
-    selectors: Record<string, string>
-  ): Promise<WAECResult> {
+  private async extractResults(page: Page, data: WAECQueryData): Promise<WAECResult> {
     logger.info('Extracting WAEC results');
 
     let candidateName: string | undefined;
@@ -350,11 +339,8 @@ export class WAECWorker extends BaseWorker {
     };
   }
 
-  private async cleanup(): Promise<void> {
-    if (this.engine) {
-      await this.engine.cleanup();
-      this.engine = null;
-    }
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

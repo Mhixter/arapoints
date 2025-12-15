@@ -88,12 +88,14 @@ export const bvnServices = pgTable('bvn_services', {
 export const educationServices = pgTable('education_services', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id),
+  jobId: uuid('job_id').references(() => rpaJobs.id),
   serviceType: varchar('service_type', { length: 100 }).notNull(),
   examYear: integer('exam_year'),
   registrationNumber: varchar('registration_number', { length: 100 }),
   status: varchar('status', { length: 50 }),
   resultData: jsonb('result_data'),
   createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // Identity Verifications

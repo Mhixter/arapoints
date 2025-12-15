@@ -6,33 +6,38 @@ import { waecWorker } from './workers/waecWorker';
 import { db } from '../config/database';
 import { rpaJobs, educationServices } from '../db/schema';
 import { eq } from 'drizzle-orm';
+import { browserPool } from './browserPool';
 
 class RPABot {
   private isRunning: boolean = false;
   private processingInterval: NodeJS.Timeout | null = null;
   private activeJobCount: number = 0;
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.isRunning) {
       logger.warn('RPA Bot is already running');
       return;
     }
+
+    logger.info('Initializing browser pool...');
+    await browserPool.initialize(config.RPA_MAX_CONCURRENT_JOBS || 10);
 
     this.isRunning = true;
     logger.info('RPA Bot started');
 
     this.processingInterval = setInterval(() => {
       this.processNextJob();
-    }, 2000);
+    }, 500);
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
     if (!this.isRunning) return;
 
     this.isRunning = false;
     if (this.processingInterval) {
       clearInterval(this.processingInterval);
     }
+    await browserPool.cleanup();
     logger.info('RPA Bot stopped');
   }
 
@@ -58,7 +63,7 @@ class RPABot {
       await db.update(rpaJobs)
         .set({
           status: 'completed',
-          resultData: result.data || {},
+          result: result.data || {},
           completedAt: new Date(),
         })
         .where(eq(rpaJobs.id, job.id));
@@ -74,14 +79,14 @@ class RPABot {
     } catch (error: any) {
       logger.error('Error processing job', { jobId: job.id, error: error.message });
 
-      const attempts = (job.attempts || 0) + 1;
+      const retryCount = (job.retry_count || 0) + 1;
       const maxRetries = job.max_retries || 3;
 
-      if (attempts < maxRetries) {
+      if (retryCount < maxRetries) {
         await db.update(rpaJobs)
           .set({
             status: 'pending',
-            attempts,
+            retryCount,
             errorMessage: error.message,
           })
           .where(eq(rpaJobs.id, job.id));
@@ -91,7 +96,7 @@ class RPABot {
         await db.update(rpaJobs)
           .set({
             status: 'failed',
-            attempts,
+            retryCount,
             errorMessage: error.message,
             completedAt: new Date(),
           })
@@ -144,8 +149,6 @@ class RPABot {
 
   private async updateEducationService(job: RPAJob, result: { success: boolean; data?: Record<string, unknown> }): Promise<void> {
     try {
-      const serviceType = job.service_type.replace('_service', '');
-      
       const [existingService] = await db.select()
         .from(educationServices)
         .where(eq(educationServices.jobId, job.id))
@@ -171,6 +174,7 @@ class RPABot {
       queueLength: jobQueue.getQueueLength(),
       activeJobs: this.activeJobCount,
       maxConcurrent: config.RPA_MAX_CONCURRENT_JOBS || 5,
+      browserPool: browserPool.getStats(),
     };
   }
 }

@@ -135,20 +135,23 @@ export const jobService = {
     registrationNumber: string;
     examYear?: number;
   }) {
+    const jobResult = await this.createJob({
+      userId,
+      serviceType: data.serviceType === 'jamb' ? 'jamb_score' : `${data.serviceType}_result` as ServiceType,
+      queryData: data,
+      priority: 3,
+    });
+
     await db.insert(educationServices).values({
       userId,
+      jobId: jobResult.jobId,
       serviceType: `${data.serviceType}_result`,
       registrationNumber: data.registrationNumber,
       examYear: data.examYear,
       status: 'pending',
     });
 
-    return this.createJob({
-      userId,
-      serviceType: data.serviceType === 'jamb' ? 'jamb_score' : `${data.serviceType}_result` as ServiceType,
-      queryData: data,
-      priority: 3,
-    });
+    return jobResult;
   },
 
   async createBirthJob(userId: string, data: { fullName: string; dateOfBirth: string; registrationNumber?: string }) {
@@ -284,7 +287,7 @@ export const jobService = {
       throw new Error('Job not found');
     }
 
-    if (job.retryCount >= (job.maxRetries || 3)) {
+    if ((job.retryCount || 0) >= (job.maxRetries || 3)) {
       throw new Error('Max retries exceeded');
     }
 

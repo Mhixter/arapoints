@@ -148,12 +148,12 @@ export default function EducationServices() {
           throw new Error(jobStatus.errorMessage || 'Verification failed');
         }
         
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (err: any) {
         if (attempt === maxAttempts - 1) {
           throw err;
         }
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     throw new Error('Verification timed out. Please try again later.');
