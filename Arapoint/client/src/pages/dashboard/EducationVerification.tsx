@@ -95,12 +95,12 @@ export default function EducationVerification() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="waec-exam-year">Examination Year *</Label>
-          <Select defaultValue="2023">
+          <Select defaultValue={new Date().getFullYear().toString()}>
             <SelectTrigger className="h-10 sm:h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Array.from({length: 10}, (_, i) => 2024 - i).map(year => (
+              {Array.from({length: 12}, (_, i) => new Date().getFullYear() + 1 - i).map(year => (
                 <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
               ))}
             </SelectContent>
