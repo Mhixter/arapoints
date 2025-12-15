@@ -29,6 +29,7 @@ interface WAECResult {
   verificationStatus: 'verified' | 'not_found' | 'error';
   message: string;
   screenshotBase64?: string;
+  pdfBase64?: string;
 }
 
 export class WAECWorker extends BaseWorker {
@@ -387,6 +388,35 @@ export class WAECWorker extends BaseWorker {
       logger.warn('Could not extract subjects');
     }
 
+    let pdfBase64: string | undefined;
+    let screenshotBase64: string | undefined;
+
+    if (subjects.length > 0) {
+      try {
+        logger.info('Capturing PDF of result page');
+        const pdfBuffer = await (page as any).pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+        });
+        pdfBase64 = Buffer.from(pdfBuffer).toString('base64');
+        logger.info('PDF captured successfully', { size: pdfBase64.length });
+      } catch (pdfError: any) {
+        logger.warn('Could not generate PDF, falling back to screenshot', { error: pdfError.message });
+        
+        try {
+          const screenshotBuffer = await (page as any).screenshot({ 
+            fullPage: true, 
+            type: 'png',
+          });
+          screenshotBase64 = Buffer.from(screenshotBuffer).toString('base64');
+          logger.info('Screenshot captured successfully', { size: screenshotBase64.length });
+        } catch (ssError: any) {
+          logger.warn('Could not capture screenshot', { error: ssError.message });
+        }
+      }
+    }
+
     return {
       registrationNumber: data.registrationNumber,
       candidateName,
@@ -397,6 +427,8 @@ export class WAECWorker extends BaseWorker {
       message: subjects.length > 0 
         ? 'WAEC result verification completed successfully' 
         : 'Could not extract results from page',
+      pdfBase64,
+      screenshotBase64,
     };
   }
 

@@ -235,4 +235,81 @@ router.get('/job/:jobId', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/job/:jobId/download', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    const format = (req.query.format as string) || 'pdf';
+    
+    const [educationService] = await db.select()
+      .from(educationServices)
+      .where(eq(educationServices.jobId, jobId))
+      .limit(1);
+
+    if (!educationService) {
+      return res.status(404).json(formatErrorResponse(404, 'Result not found'));
+    }
+
+    if (educationService.userId !== req.userId) {
+      return res.status(403).json(formatErrorResponse(403, 'Access denied'));
+    }
+
+    const resultData = educationService.resultData as Record<string, any> | null;
+    
+    if (!resultData) {
+      return res.status(404).json(formatErrorResponse(404, 'No result data available'));
+    }
+
+    if (format === 'pdf' && resultData.pdfBase64) {
+      const pdfBuffer = Buffer.from(resultData.pdfBase64, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${educationService.serviceType}_result_${educationService.registrationNumber}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      return res.send(pdfBuffer);
+    }
+    
+    if (resultData.screenshotBase64) {
+      const imageBuffer = Buffer.from(resultData.screenshotBase64, 'base64');
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', `attachment; filename="${educationService.serviceType}_result_${educationService.registrationNumber}.png"`);
+      res.setHeader('Content-Length', imageBuffer.length);
+      return res.send(imageBuffer);
+    }
+
+    return res.status(404).json(formatErrorResponse(404, 'No downloadable result available. The result may only contain text data.'));
+  } catch (error: any) {
+    logger.error('Download result error', { error: error.message, userId: req.userId });
+    res.status(500).json(formatErrorResponse(500, 'Failed to download result'));
+  }
+});
+
+router.get('/job/:jobId/has-download', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    
+    const [educationService] = await db.select()
+      .from(educationServices)
+      .where(eq(educationServices.jobId, jobId))
+      .limit(1);
+
+    if (!educationService || educationService.userId !== req.userId) {
+      return res.json(formatResponse('success', 200, 'Download availability checked', { 
+        hasDownload: false,
+        hasPdf: false,
+        hasScreenshot: false,
+      }));
+    }
+
+    const resultData = educationService.resultData as Record<string, any> | null;
+    
+    res.json(formatResponse('success', 200, 'Download availability checked', { 
+      hasDownload: !!(resultData?.pdfBase64 || resultData?.screenshotBase64),
+      hasPdf: !!resultData?.pdfBase64,
+      hasScreenshot: !!resultData?.screenshotBase64,
+    }));
+  } catch (error: any) {
+    logger.error('Check download availability error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to check download availability'));
+  }
+});
+
 export default router;

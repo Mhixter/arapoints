@@ -115,8 +115,10 @@ export default function EducationServices() {
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedJAMBSub, setSelectedJAMBSub] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   
   const [waecYear, setWaecYear] = useState(new Date().getFullYear().toString());
   const [waecType, setWaecType] = useState('WASSCE');
@@ -228,6 +230,7 @@ export default function EducationServices() {
       const resultData = await pollJobStatus(jobResponse.jobId);
       
       setResult(resultData);
+      setCurrentJobId(jobResponse.jobId);
       setStatusMessage('');
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['wallet'] });
@@ -263,6 +266,61 @@ export default function EducationServices() {
         description: `Your ${service?.name} request has been submitted successfully.`,
       });
     }, 2000);
+  };
+
+  const handleDownloadResult = async () => {
+    if (!currentJobId) {
+      toast({
+        title: "Download Error",
+        description: "No result available for download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDownloading(true);
+    try {
+      const response = await fetch(`/api/education/job/${currentJobId}/download`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Download failed');
+      }
+
+      const contentType = response.headers.get('Content-Type');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = contentType?.includes('pdf') 
+        ? `${selectedService}_result.pdf` 
+        : `${selectedService}_result.png`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast({
+        title: "Download Successful",
+        description: "Your result has been downloaded.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Download Error",
+        description: err.message || "Failed to download result. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handlePrintResult = () => {
+    window.print();
   };
 
   // Service selection hub
@@ -882,13 +940,22 @@ export default function EducationServices() {
         </CardContent>
 
         <CardFooter className="bg-muted/30 flex gap-4 justify-between">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handlePrintResult}>
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Download
+          <Button size="sm" onClick={handleDownloadResult} disabled={downloading}>
+            {downloading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>
