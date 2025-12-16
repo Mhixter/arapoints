@@ -6,10 +6,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Loader2, Clock, CheckCircle2, XCircle, User, LogOut, FileText, RefreshCw, Eye } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Building2, Loader2, Clock, CheckCircle2, XCircle, User, LogOut, FileText, RefreshCw, Eye, MessageCircle, Send } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const STATUS_OPTIONS = [
   { value: 'in_review', label: 'In Review', color: 'bg-yellow-100 text-yellow-700' },
@@ -33,6 +34,12 @@ export default function CACAgentDashboard() {
   const [showDetails, setShowDetails] = useState(false);
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
   const [updateData, setUpdateData] = useState({ status: '', comment: '', cacRegistrationNumber: '', rejectionReason: '' });
+  const [showChat, setShowChat] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = getAgentToken();
@@ -172,6 +179,66 @@ export default function CACAgentDashboard() {
     return <Badge className={config.color}>{config.label}</Badge>;
   };
 
+  const openChat = async (request: any) => {
+    setSelectedRequest(request);
+    setShowChat(true);
+    setLoadingMessages(true);
+    try {
+      const token = getAgentToken();
+      const response = await fetch(`/api/cac-agent/requests/${request.id}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setMessages(data.data.messages || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedRequest) return;
+    setSendingMessage(true);
+    try {
+      const token = getAgentToken();
+      const response = await fetch(`/api/cac-agent/requests/${selectedRequest.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ message: newMessage.trim() })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setMessages([...messages, data.data.message]);
+        setNewMessage('');
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showChat || !selectedRequest) return;
+    const interval = setInterval(async () => {
+      try {
+        const token = getAgentToken();
+        const response = await fetch(`/api/cac-agent/requests/${selectedRequest.id}/messages`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          setMessages(data.data.messages || []);
+        }
+      } catch (error) {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [showChat, selectedRequest]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <header className="bg-white dark:bg-gray-800 border-b sticky top-0 z-10">
@@ -266,6 +333,9 @@ export default function CACAgentDashboard() {
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(req.status)}
+                      <Button variant="outline" size="sm" onClick={() => openChat(req)} title="Chat with customer">
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
                       <Button variant="outline" size="sm" onClick={() => handleViewDetails(req.id)}>
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -426,6 +496,57 @@ export default function CACAgentDashboard() {
               Update Status
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showChat} onOpenChange={setShowChat}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Chat with Customer
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRequest?.businessName} - {selectedRequest?.proprietorName}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-[300px] max-h-[400px] border rounded-lg p-3">
+            {loadingMessages ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No messages yet</p>
+                <p className="text-xs">Start a conversation with the customer</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.senderType === 'agent' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-lg px-3 py-2 ${msg.senderType === 'agent' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      <p className="text-sm">{msg.message}</p>
+                      <p className={`text-xs mt-1 ${msg.senderType === 'agent' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+          <div className="flex gap-2 pt-2">
+            <Input 
+              placeholder="Type your message..." 
+              value={newMessage} 
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              disabled={sendingMessage}
+            />
+            <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+              {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

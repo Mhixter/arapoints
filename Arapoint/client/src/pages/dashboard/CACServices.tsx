@@ -6,11 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Loader2, AlertCircle, ArrowLeft, Check, History, FileText, Clock, CheckCircle2, XCircle } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Building2, Loader2, AlertCircle, ArrowLeft, Check, History, FileText, Clock, CheckCircle2, XCircle, MessageCircle, Send, X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 
@@ -47,6 +48,13 @@ export default function CACServices() {
   const [requests, setRequests] = useState<any[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [serviceTypes, setServiceTypes] = useState<any[]>(SERVICE_TYPES);
+  const [showChat, setShowChat] = useState(false);
+  const [chatRequest, setChatRequest] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchServiceTypes();
@@ -132,6 +140,66 @@ export default function CACServices() {
   };
 
   const selectedService = serviceTypes.find(s => s.code === formData.serviceType);
+
+  const openChat = async (request: any) => {
+    setChatRequest(request);
+    setShowChat(true);
+    setLoadingMessages(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/cac/requests/${request.id}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setMessages(data.data.messages || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch messages:', error);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !chatRequest) return;
+    setSendingMessage(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`/api/cac/requests/${chatRequest.id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ message: newMessage.trim() })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setMessages([...messages, data.data.message]);
+        setNewMessage('');
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to send message", variant: "destructive" });
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showChat || !chatRequest) return;
+    const interval = setInterval(async () => {
+      try {
+        const token = getAuthToken();
+        const response = await fetch(`/api/cac/requests/${chatRequest.id}/messages`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          setMessages(data.data.messages || []);
+        }
+      } catch (error) {}
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [showChat, chatRequest]);
 
   return (
     <div className="space-y-6">
@@ -358,15 +426,21 @@ export default function CACServices() {
                             <p className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold">₦{parseFloat(req.fee).toLocaleString()}</p>
-                          <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
-                            <StatusIcon className="h-3 w-3" />
-                            {req.status?.replace(/_/g, ' ')}
-                          </span>
-                          {req.cacRegistrationNumber && (
-                            <p className="text-xs text-green-600 mt-1">RC: {req.cacRegistrationNumber}</p>
-                          )}
+                        <div className="flex items-center gap-3">
+                          <Button variant="outline" size="sm" onClick={() => openChat(req)} className="flex items-center gap-1">
+                            <MessageCircle className="h-4 w-4" />
+                            Chat
+                          </Button>
+                          <div className="text-right">
+                            <p className="font-bold">₦{parseFloat(req.fee).toLocaleString()}</p>
+                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${statusConfig.bg} ${statusConfig.text}`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {req.status?.replace(/_/g, ' ')}
+                            </span>
+                            {req.cacRegistrationNumber && (
+                              <p className="text-xs text-green-600 mt-1">RC: {req.cacRegistrationNumber}</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -412,6 +486,57 @@ export default function CACServices() {
               Pay & Submit
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showChat} onOpenChange={setShowChat}>
+        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Chat with Agent
+            </DialogTitle>
+            <DialogDescription>
+              {chatRequest?.businessName} - {chatRequest?.serviceType?.replace(/_/g, ' ')}
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-[300px] max-h-[400px] border rounded-lg p-3">
+            {loadingMessages ? (
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            ) : messages.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <MessageCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No messages yet</p>
+                <p className="text-xs">Start a conversation with your agent</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {messages.map((msg) => (
+                  <div key={msg.id} className={`flex ${msg.senderType === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] rounded-lg px-3 py-2 ${msg.senderType === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      <p className="text-sm">{msg.message}</p>
+                      <p className={`text-xs mt-1 ${msg.senderType === 'user' ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {new Date(msg.createdAt).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            )}
+          </ScrollArea>
+          <div className="flex gap-2 pt-2">
+            <Input 
+              placeholder="Type your message..." 
+              value={newMessage} 
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+              disabled={sendingMessage}
+            />
+            <Button onClick={sendMessage} disabled={sendingMessage || !newMessage.trim()}>
+              {sendingMessage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

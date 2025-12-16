@@ -9,6 +9,7 @@ import {
   cacRegistrationRequests, 
   cacRequestDocuments,
   cacRequestActivity,
+  cacRequestMessages,
   users
 } from '../../db/schema';
 import { eq, desc, count, and } from 'drizzle-orm';
@@ -254,6 +255,111 @@ router.post('/requests/:id/documents', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('CAC document upload error', { error: error.message, userId: req.userId });
     res.status(500).json(formatErrorResponse(500, 'Failed to upload document'));
+  }
+});
+
+router.get('/requests/:id/messages', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [request] = await db.select()
+      .from(cacRegistrationRequests)
+      .where(and(
+        eq(cacRegistrationRequests.id, id),
+        eq(cacRegistrationRequests.userId, req.userId!)
+      ))
+      .limit(1);
+
+    if (!request) {
+      return res.status(404).json(formatErrorResponse(404, 'Request not found'));
+    }
+
+    const messages = await db.select()
+      .from(cacRequestMessages)
+      .where(eq(cacRequestMessages.requestId, id))
+      .orderBy(cacRequestMessages.createdAt);
+
+    await db.update(cacRequestMessages)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(cacRequestMessages.requestId, id),
+        eq(cacRequestMessages.senderType, 'agent'),
+        eq(cacRequestMessages.isRead, false)
+      ));
+
+    res.json(formatResponse('success', 200, 'Messages retrieved', { messages }));
+  } catch (error: any) {
+    logger.error('Get CAC messages error', { error: error.message, userId: req.userId });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get messages'));
+  }
+});
+
+router.post('/requests/:id/messages', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { message, attachments } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json(formatErrorResponse(400, 'Message is required'));
+    }
+
+    const [request] = await db.select()
+      .from(cacRegistrationRequests)
+      .where(and(
+        eq(cacRegistrationRequests.id, id),
+        eq(cacRegistrationRequests.userId, req.userId!)
+      ))
+      .limit(1);
+
+    if (!request) {
+      return res.status(404).json(formatErrorResponse(404, 'Request not found'));
+    }
+
+    const [newMessage] = await db.insert(cacRequestMessages).values({
+      requestId: id,
+      senderType: 'user',
+      senderId: req.userId!,
+      message: message.trim(),
+      attachments: attachments || [],
+    }).returning();
+
+    logger.info('CAC message sent by user', { userId: req.userId, requestId: id });
+
+    res.status(201).json(formatResponse('success', 201, 'Message sent', { message: newMessage }));
+  } catch (error: any) {
+    logger.error('Send CAC message error', { error: error.message, userId: req.userId });
+    res.status(500).json(formatErrorResponse(500, 'Failed to send message'));
+  }
+});
+
+router.get('/requests/:id/unread-count', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [request] = await db.select()
+      .from(cacRegistrationRequests)
+      .where(and(
+        eq(cacRegistrationRequests.id, id),
+        eq(cacRegistrationRequests.userId, req.userId!)
+      ))
+      .limit(1);
+
+    if (!request) {
+      return res.status(404).json(formatErrorResponse(404, 'Request not found'));
+    }
+
+    const [result] = await db.select({ count: count() })
+      .from(cacRequestMessages)
+      .where(and(
+        eq(cacRequestMessages.requestId, id),
+        eq(cacRequestMessages.senderType, 'agent'),
+        eq(cacRequestMessages.isRead, false)
+      ));
+
+    res.json(formatResponse('success', 200, 'Unread count retrieved', { unreadCount: result?.count || 0 }));
+  } catch (error: any) {
+    logger.error('Get unread count error', { error: error.message, userId: req.userId });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get unread count'));
   }
 });
 

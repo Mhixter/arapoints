@@ -358,3 +358,16 @@ export const cacRequestActivity = pgTable('cac_request_activity', {
   metadata: jsonb('metadata'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// CAC Request Chat Messages
+export const cacRequestMessages = pgTable('cac_request_messages', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  requestId: uuid('request_id').references(() => cacRegistrationRequests.id).notNull(),
+  senderType: varchar('sender_type', { length: 20 }).notNull(),
+  senderId: uuid('sender_id').notNull(),
+  message: text('message').notNull(),
+  attachments: jsonb('attachments').default('[]'),
+  isRead: boolean('is_read').default(false),
+  readAt: timestamp('read_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
