@@ -16,7 +16,10 @@ import jwt from 'jsonwebtoken';
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'arapoint-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
 
 const CAC_STATUS = {
   SUBMITTED: 'submitted',
