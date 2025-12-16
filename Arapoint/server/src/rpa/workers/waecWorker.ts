@@ -319,7 +319,51 @@ export class WAECWorker extends BaseWorker {
         await page.select(selectors.examTypeSelect, data.examType);
         logger.info('Selected exam type', { type: data.examType });
       } catch {
-        logger.warn('Could not select exam type');
+        try {
+          await page.evaluate((examType) => {
+            const selects = Array.from(document.querySelectorAll('select'));
+            for (const select of selects) {
+              const options = Array.from(select.querySelectorAll('option'));
+              for (const option of options) {
+                const optText = option.textContent?.toLowerCase() || '';
+                const optValue = option.value?.toLowerCase() || '';
+                const searchType = examType.toLowerCase();
+                if (optValue === searchType || optText.includes(searchType) || 
+                    (searchType === 'wassce' && (optText.includes('school') || optText.includes('wassce'))) ||
+                    (searchType === 'gce' && (optText.includes('private') || optText.includes('gce')))) {
+                  (select as HTMLSelectElement).value = option.value;
+                  select.dispatchEvent(new Event('change', { bubbles: true }));
+                  return true;
+                }
+              }
+            }
+            return false;
+          }, data.examType);
+          logger.info('Selected exam type via fallback', { type: data.examType });
+        } catch {
+          logger.warn('Could not select exam type');
+        }
+      }
+    } else {
+      try {
+        await page.evaluate(() => {
+          const selects = Array.from(document.querySelectorAll('select'));
+          for (const select of selects) {
+            const options = Array.from(select.querySelectorAll('option'));
+            for (const option of options) {
+              const optText = option.textContent?.toLowerCase() || '';
+              if (optText.includes('school') || optText.includes('wassce')) {
+                (select as HTMLSelectElement).value = option.value;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                return true;
+              }
+            }
+          }
+          return false;
+        });
+        logger.info('Auto-selected school candidate exam type');
+      } catch {
+        logger.warn('Could not auto-select exam type');
       }
     }
 
@@ -416,23 +460,22 @@ export class WAECWorker extends BaseWorker {
       }
     }
 
-    await this.sleep(500);
+    await this.sleep(1000);
 
     logger.info('Submitting WAEC form');
     let submitClicked = false;
     
     const submitSelectors = [
+      'input[value="Submit"]',
       'input[type="submit"]',
       'button[type="submit"]',
+      'input[value="Check"]',
+      'input[value="Check Result"]',
       'button.submit',
       'input.submit',
       '.btn-submit',
       '#submit',
-      'button[name="submit"]',
-      'input[value="Submit"]',
-      'input[value="Check"]',
-      'input[value="Check Result"]',
-      'button'
+      'button[name="submit"]'
     ];
 
     for (const selector of submitSelectors) {
@@ -445,6 +488,8 @@ export class WAECWorker extends BaseWorker {
           }, btn);
           
           if (isVisible) {
+            await btn.scrollIntoView();
+            await this.sleep(200);
             await btn.click();
             logger.info('Clicked submit button', { selector });
             submitClicked = true;
@@ -452,7 +497,28 @@ export class WAECWorker extends BaseWorker {
           }
         }
       } catch (e) {
+        logger.warn('Submit selector failed', { selector, error: (e as Error).message });
         continue;
+      }
+    }
+    
+    if (!submitClicked) {
+      try {
+        const allInputs = await page.$$('input');
+        for (const input of allInputs) {
+          const value = await page.evaluate((el: Element) => (el as HTMLInputElement).value, input);
+          const type = await page.evaluate((el: Element) => (el as HTMLInputElement).type, input);
+          if (value?.toLowerCase().includes('submit') || type === 'submit') {
+            await input.scrollIntoView();
+            await this.sleep(200);
+            await input.click();
+            logger.info('Clicked submit via input scan', { value, type });
+            submitClicked = true;
+            break;
+          }
+        }
+      } catch (e) {
+        logger.warn('Input scan for submit failed', { error: (e as Error).message });
       }
     }
 
