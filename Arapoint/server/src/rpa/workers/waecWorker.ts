@@ -314,58 +314,59 @@ export class WAECWorker extends BaseWorker {
       }
     }
 
-    if (data.examType) {
-      try {
-        await page.select(selectors.examTypeSelect, data.examType);
-        logger.info('Selected exam type', { type: data.examType });
-      } catch {
-        try {
-          await page.evaluate((examType) => {
-            const selects = Array.from(document.querySelectorAll('select'));
-            for (const select of selects) {
-              const options = Array.from(select.querySelectorAll('option'));
-              for (const option of options) {
-                const optText = option.textContent?.toLowerCase() || '';
-                const optValue = option.value?.toLowerCase() || '';
-                const searchType = examType.toLowerCase();
-                if (optValue === searchType || optText.includes(searchType) || 
-                    (searchType === 'wassce' && (optText.includes('school') || optText.includes('wassce'))) ||
-                    (searchType === 'gce' && (optText.includes('private') || optText.includes('gce')))) {
-                  (select as HTMLSelectElement).value = option.value;
-                  select.dispatchEvent(new Event('change', { bubbles: true }));
-                  return true;
-                }
-              }
-            }
-            return false;
-          }, data.examType);
-          logger.info('Selected exam type via fallback', { type: data.examType });
-        } catch {
-          logger.warn('Could not select exam type');
-        }
-      }
-    } else {
-      try {
-        await page.evaluate(() => {
-          const selects = Array.from(document.querySelectorAll('select'));
-          for (const select of selects) {
-            const options = Array.from(select.querySelectorAll('option'));
-            for (const option of options) {
-              const optText = option.textContent?.toLowerCase() || '';
-              if (optText.includes('school') || optText.includes('wassce')) {
-                (select as HTMLSelectElement).value = option.value;
+    const examTypeToSelect = data.examType || 'WASSCE';
+    logger.info('Attempting to select exam type', { requestedType: examTypeToSelect });
+    
+    try {
+      const selected = await page.evaluate((examType) => {
+        const selects = Array.from(document.querySelectorAll('select'));
+        const isSchoolCandidate = examType.toUpperCase() === 'WASSCE' || examType.toLowerCase().includes('school') || examType.toLowerCase().includes('internal');
+        
+        for (const select of selects) {
+          const options = Array.from(select.querySelectorAll('option'));
+          
+          for (let i = 0; i < options.length; i++) {
+            const option = options[i];
+            const optText = option.textContent?.toLowerCase() || '';
+            const optValue = option.value?.toLowerCase() || '';
+            
+            if (isSchoolCandidate) {
+              if (optText.includes('school') || optValue.includes('school') || 
+                  optText.includes('wassce') || optValue === '1' || optValue === 'sc') {
+                (select as HTMLSelectElement).selectedIndex = i;
                 select.dispatchEvent(new Event('change', { bubbles: true }));
-                return true;
+                return { success: true, selectedText: option.textContent, selectedValue: option.value };
+              }
+            } else {
+              if (optText.includes('private') || optValue.includes('private') || 
+                  optText.includes('gce') || optValue === '2' || optValue === 'pc') {
+                (select as HTMLSelectElement).selectedIndex = i;
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+                return { success: true, selectedText: option.textContent, selectedValue: option.value };
               }
             }
           }
-          return false;
-        });
-        logger.info('Auto-selected school candidate exam type');
-      } catch {
-        logger.warn('Could not auto-select exam type');
+        }
+        
+        const allSelects = document.querySelectorAll('select');
+        const selectInfo = Array.from(allSelects).map(s => ({
+          name: s.getAttribute('name'),
+          id: s.id,
+          options: Array.from(s.querySelectorAll('option')).map(o => ({ text: o.textContent, value: o.value }))
+        }));
+        return { success: false, selectInfo };
+      }, examTypeToSelect);
+      
+      if (selected.success) {
+        logger.info('Successfully selected exam type', { selectedText: selected.selectedText, selectedValue: selected.selectedValue });
+      } else {
+        logger.warn('Could not find matching exam type option', { availableSelects: JSON.stringify(selected.selectInfo) });
       }
+    } catch (e: any) {
+      logger.warn('Error selecting exam type', { error: e.message });
     }
+    
+    await this.sleep(500);
 
     try {
       await page.waitForSelector(selectors.examNumberInput, { timeout: 5000 });
@@ -465,99 +466,87 @@ export class WAECWorker extends BaseWorker {
     logger.info('Submitting WAEC form');
     let submitClicked = false;
     
-    const submitSelectors = [
-      'input[value="Submit"]',
-      'input[type="submit"]',
-      'button[type="submit"]',
-      'input[value="Check"]',
-      'input[value="Check Result"]',
-      'button.submit',
-      'input.submit',
-      '.btn-submit',
-      '#submit',
-      'button[name="submit"]'
-    ];
-
-    for (const selector of submitSelectors) {
-      try {
-        const btn = await page.$(selector);
-        if (btn) {
-          const isVisible = await page.evaluate((el: Element) => {
-            const style = window.getComputedStyle(el);
-            return style.display !== 'none' && style.visibility !== 'hidden' && (el as HTMLElement).offsetWidth > 0;
-          }, btn);
-          
-          if (isVisible) {
-            await btn.scrollIntoView();
-            await this.sleep(200);
-            await btn.click();
-            logger.info('Clicked submit button', { selector });
-            submitClicked = true;
-            break;
+    try {
+      submitClicked = await page.evaluate(() => {
+        const submitBtn = document.querySelector('input[type="submit"]') as HTMLInputElement;
+        if (submitBtn) {
+          submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          submitBtn.focus();
+          submitBtn.click();
+          return true;
+        }
+        
+        const allInputs = Array.from(document.querySelectorAll('input'));
+        for (let i = 0; i < allInputs.length; i++) {
+          const inp = allInputs[i] as HTMLInputElement;
+          if (inp.type === 'submit' || inp.value?.toLowerCase().includes('submit') || inp.value?.toLowerCase().includes('check')) {
+            inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            inp.focus();
+            inp.click();
+            return true;
           }
         }
-      } catch (e) {
-        logger.warn('Submit selector failed', { selector, error: (e as Error).message });
-        continue;
+        
+        const forms = Array.from(document.querySelectorAll('form'));
+        for (let i = 0; i < forms.length; i++) {
+          const form = forms[i];
+          const inputs = form.querySelectorAll('input, select');
+          if (inputs.length >= 3) {
+            (form as HTMLFormElement).submit();
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      if (submitClicked) {
+        logger.info('Form submitted via JavaScript');
       }
+    } catch (e: any) {
+      logger.warn('JavaScript form submission failed', { error: e.message });
     }
     
     if (!submitClicked) {
-      try {
-        const allInputs = await page.$$('input');
-        for (const input of allInputs) {
-          const value = await page.evaluate((el: Element) => (el as HTMLInputElement).value, input);
-          const type = await page.evaluate((el: Element) => (el as HTMLInputElement).type, input);
-          if (value?.toLowerCase().includes('submit') || type === 'submit') {
-            await input.scrollIntoView();
+      const submitSelectors = [
+        'input[type="submit"]',
+        'input[value="Submit"]',
+        'button[type="submit"]',
+        'input[value="Check"]',
+        'input[value="Check Result"]'
+      ];
+
+      for (const selector of submitSelectors) {
+        try {
+          const btn = await page.$(selector);
+          if (btn) {
+            await btn.scrollIntoView();
             await this.sleep(200);
-            await input.click();
-            logger.info('Clicked submit via input scan', { value, type });
+            await btn.click();
+            logger.info('Clicked submit button with Puppeteer', { selector });
             submitClicked = true;
             break;
           }
+        } catch (e) {
+          continue;
         }
-      } catch (e) {
-        logger.warn('Input scan for submit failed', { error: (e as Error).message });
       }
     }
 
     if (!submitClicked) {
-      try {
-        submitClicked = await page.evaluate(() => {
-          const forms = Array.from(document.querySelectorAll('form'));
-          for (const form of forms) {
-            const inputs = form.querySelectorAll('input, select');
-            if (inputs.length > 0) {
-              (form as HTMLFormElement).submit();
-              return true;
-            }
-          }
-          
-          const buttons = Array.from(document.querySelectorAll('button, input[type="button"], input[type="submit"]'));
-          for (const btn of buttons) {
-            const text = btn.textContent?.toLowerCase() || (btn as HTMLInputElement).value?.toLowerCase() || '';
-            if (text.includes('submit') || text.includes('check') || text.includes('verify')) {
-              (btn as HTMLElement).click();
-              return true;
-            }
-          }
-          return false;
-        });
-        
-        if (submitClicked) {
-          logger.info('Used JavaScript form submission');
-        }
-      } catch (e: any) {
-        logger.warn('Form submission fallback failed', { error: e.message });
-      }
+      logger.warn('Submit button click may have failed, continuing to check for results');
+    } else {
+      logger.info('Form submission successful, waiting for results page');
     }
 
-    if (!submitClicked) {
-      throw new Error('Could not find submit button. The WAEC portal page structure may have changed.');
+    await this.sleep(3000);
+    
+    try {
+      await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 5000 }).catch(() => {});
+    } catch {
+      logger.info('Navigation wait completed or timed out');
     }
-
-    logger.info('Waiting for results page');
+    
     await this.sleep(2000);
 
     try {
