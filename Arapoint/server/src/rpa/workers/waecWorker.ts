@@ -464,14 +464,19 @@ export class WAECWorker extends BaseWorker {
     await this.sleep(1000);
 
     logger.info('Submitting WAEC form');
-    let submitClicked = false;
     
+    page.on('dialog', async (dialog) => {
+      logger.info('Dialog appeared', { message: dialog.message(), type: dialog.type() });
+      await dialog.accept();
+    });
+
+    const urlBeforeSubmit = page.url();
+    logger.info('URL before submit', { url: urlBeforeSubmit });
+
     try {
-      submitClicked = await page.evaluate(() => {
+      await page.evaluate(() => {
         const submitBtn = document.querySelector('input[type="submit"]') as HTMLInputElement;
         if (submitBtn) {
-          submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          submitBtn.focus();
           submitBtn.click();
           return true;
         }
@@ -480,80 +485,62 @@ export class WAECWorker extends BaseWorker {
         for (let i = 0; i < allInputs.length; i++) {
           const inp = allInputs[i] as HTMLInputElement;
           if (inp.type === 'submit' || inp.value?.toLowerCase().includes('submit') || inp.value?.toLowerCase().includes('check')) {
-            inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            inp.focus();
             inp.click();
             return true;
           }
         }
         
-        const forms = Array.from(document.querySelectorAll('form'));
-        for (let i = 0; i < forms.length; i++) {
-          const form = forms[i];
-          const inputs = form.querySelectorAll('input, select');
-          if (inputs.length >= 3) {
-            (form as HTMLFormElement).submit();
-            return true;
-          }
+        const form = document.querySelector('form') as HTMLFormElement;
+        if (form) {
+          form.submit();
+          return true;
         }
         
         return false;
       });
-      
-      if (submitClicked) {
-        logger.info('Form submitted via JavaScript');
-      }
+      logger.info('Form submit triggered via page.evaluate');
     } catch (e: any) {
-      logger.warn('JavaScript form submission failed', { error: e.message });
+      logger.warn('page.evaluate submit failed', { error: e.message });
     }
+
+    logger.info('Waiting for WAEC response...');
     
-    if (!submitClicked) {
-      const submitSelectors = [
-        'input[type="submit"]',
-        'input[value="Submit"]',
-        'button[type="submit"]',
-        'input[value="Check"]',
-        'input[value="Check Result"]'
-      ];
-
-      for (const selector of submitSelectors) {
-        try {
-          const btn = await page.$(selector);
-          if (btn) {
-            await btn.scrollIntoView();
-            await this.sleep(200);
-            await btn.click();
-            logger.info('Clicked submit button with Puppeteer', { selector });
-            submitClicked = true;
-            break;
-          }
-        } catch (e) {
-          continue;
-        }
-      }
+    const resultSelectors = [
+      'table.resultTable',
+      'table#resultTable', 
+      '.result-table',
+      '.result-container',
+      '.error-message',
+      '.alert-danger',
+      '.alert-success',
+      'table tbody tr td',
+      '.subject-row'
+    ];
+    
+    try {
+      await Promise.race([
+        page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 20000 }),
+        page.waitForSelector(resultSelectors.join(', '), { timeout: 20000 }),
+        new Promise(resolve => setTimeout(resolve, 15000))
+      ]);
+      logger.info('Navigation or result element detected');
+    } catch (e) {
+      logger.info('Wait completed (timeout or success)');
     }
 
-    if (!submitClicked) {
-      logger.warn('Submit button click may have failed, continuing to check for results');
-    } else {
-      logger.info('Form submission successful, waiting for results page');
-    }
-
+    const urlAfterSubmit = page.url();
+    logger.info('URL after submit', { url: urlAfterSubmit });
+    
     await this.sleep(3000);
     
-    try {
-      await page.waitForNavigation({ waitUntil: 'networkidle0', timeout: 5000 }).catch(() => {});
-    } catch {
-      logger.info('Navigation wait completed or timed out');
-    }
+    const pageContent = await page.content();
+    const hasResults = pageContent.includes('Subject') || pageContent.includes('Grade') || 
+                       pageContent.includes('RESULT') || pageContent.includes('Score') ||
+                       pageContent.includes('ENGLISH') || pageContent.includes('MATHEMATICS');
+    const hasError = pageContent.includes('Invalid') || pageContent.includes('Error') || 
+                     pageContent.includes('not found') || pageContent.includes('incorrect');
     
-    await this.sleep(2000);
-
-    try {
-      await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 15000 });
-    } catch {
-      logger.warn('Navigation timeout, checking for results on current page');
-    }
+    logger.info('Page analysis', { hasResults, hasError, urlChanged: urlBeforeSubmit !== urlAfterSubmit });
 
     const errorText = await this.checkForError(page, selectors.errorMessage);
     if (errorText) {

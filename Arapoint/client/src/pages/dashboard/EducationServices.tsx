@@ -294,28 +294,26 @@ export default function EducationServices() {
 
   const openPdfForPrint = async (jobId: string) => {
     try {
-      const response = await fetch(`/api/education/job/${jobId}/download`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        return false;
+      const token = localStorage.getItem('token');
+      const previewUrl = `/api/education/job/${jobId}/preview`;
+      
+      const newWindow = window.open('about:blank', '_blank');
+      if (newWindow) {
+        const response = await fetch(previewUrl, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (response.ok) {
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          newWindow.location.href = blobUrl;
+          return true;
+        } else {
+          newWindow.close();
+          return false;
+        }
       }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      return true;
+      return false;
     } catch {
       return false;
     }

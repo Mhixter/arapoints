@@ -305,6 +305,52 @@ router.get('/job/:jobId/download', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/job/:jobId/preview', async (req: Request, res: Response) => {
+  try {
+    const { jobId } = req.params;
+    
+    const [educationService] = await db.select()
+      .from(educationServices)
+      .where(eq(educationServices.jobId, jobId))
+      .limit(1);
+
+    if (!educationService) {
+      return res.status(404).json(formatErrorResponse(404, 'Result not found'));
+    }
+
+    if (educationService.userId !== req.userId) {
+      return res.status(403).json(formatErrorResponse(403, 'Access denied'));
+    }
+
+    const resultData = educationService.resultData as Record<string, any> | null;
+    
+    if (!resultData) {
+      return res.status(404).json(formatErrorResponse(404, 'No result data available'));
+    }
+
+    if (resultData.pdfBase64) {
+      const pdfBuffer = Buffer.from(resultData.pdfBase64, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Content-Length', pdfBuffer.length);
+      return res.send(pdfBuffer);
+    }
+
+    if (resultData.screenshotBase64) {
+      const imgBuffer = Buffer.from(resultData.screenshotBase64, 'base64');
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Content-Length', imgBuffer.length);
+      return res.send(imgBuffer);
+    }
+
+    return res.status(404).json(formatErrorResponse(404, 'No preview available'));
+  } catch (error: any) {
+    logger.error('Preview result error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to preview result'));
+  }
+});
+
 router.get('/job/:jobId/has-download', async (req: Request, res: Response) => {
   try {
     const { jobId } = req.params;
