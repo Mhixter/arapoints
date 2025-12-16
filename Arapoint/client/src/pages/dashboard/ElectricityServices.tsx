@@ -302,44 +302,43 @@ export default function ElectricityServices() {
       </Dialog>
 
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="sm:max-w-md print:max-w-full">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-green-600"><Receipt className="h-5 w-5" />Transaction Receipt</DialogTitle>
+        <DialogContent className="max-w-[340px] sm:max-w-[380px] p-4 max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-2 text-green-600 text-base"><Receipt className="h-4 w-4" />Receipt</DialogTitle>
           </DialogHeader>
           {selectedTransaction && (
-            <div className="space-y-4 py-4" id="receipt-content">
-              <div className="text-center border-b pb-4">
-                <h3 className="text-xl font-bold">ARAPOINT</h3>
-                <p className="text-sm text-muted-foreground">Electricity Token Purchase</p>
+            <div className="space-y-3 text-sm" id="receipt-content">
+              <div className="text-center border-b pb-2">
+                <h3 className="text-base font-bold">ARAPOINT</h3>
+                <p className="text-xs text-muted-foreground">Electricity Token</p>
               </div>
               {selectedTransaction.token && (
-                <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-500">
-                  <p className="text-sm text-muted-foreground mb-1">Your Token</p>
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-500">
+                  <p className="text-xs text-muted-foreground mb-1">Your Token</p>
                   <div className="flex items-center gap-2">
-                    <p className="font-mono text-lg font-bold flex-1">{selectedTransaction.token}</p>
-                    <Button variant="ghost" size="icon" onClick={() => copyToken(selectedTransaction.token)}><Copy className="h-4 w-4" /></Button>
+                    <p className="font-mono text-sm font-bold flex-1 break-all">{selectedTransaction.token}</p>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToken(selectedTransaction.token)}><Copy className="h-3 w-3" /></Button>
                   </div>
                 </div>
               )}
-              <div className="space-y-3">
-                <div className="flex justify-between"><span className="text-muted-foreground">Reference:</span><span className="font-mono text-sm">{selectedTransaction.reference}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Transaction ID:</span><span className="font-mono text-sm">{selectedTransaction.transactionId}</span></div>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">Reference:</span><span className="font-mono truncate max-w-[140px]">{selectedTransaction.reference}</span></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">Trans. ID:</span><span className="font-mono truncate max-w-[140px]">{selectedTransaction.transactionId}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Company:</span><span className="font-semibold">{selectedTransaction.disco || selectedTransaction.discoName}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Meter:</span><span className="font-semibold">{selectedTransaction.meterNumber}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-bold text-lg">₦{parseFloat(selectedTransaction.amount).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Amount:</span><span className="font-bold">₦{parseFloat(selectedTransaction.amount).toLocaleString()}</span></div>
                 {selectedTransaction.units && <div className="flex justify-between"><span className="text-muted-foreground">Units:</span><span className="font-semibold">{selectedTransaction.units}</span></div>}
                 <div className="flex justify-between"><span className="text-muted-foreground">Status:</span><span className={`font-semibold ${selectedTransaction.status === 'completed' ? 'text-green-600' : 'text-yellow-600'}`}>{selectedTransaction.status?.toUpperCase()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Date:</span><span>{new Date(selectedTransaction.createdAt || Date.now()).toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Date:</span><span className="text-xs">{new Date(selectedTransaction.createdAt || Date.now()).toLocaleString()}</span></div>
               </div>
-              <div className="text-center border-t pt-4 text-xs text-muted-foreground">
+              <div className="text-center border-t pt-2 text-[10px] text-muted-foreground">
                 <p>Thank you for using Arapoint</p>
-                <p>For support, contact support@arapoint.com</p>
               </div>
             </div>
           )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setShowReceipt(false)}>Close</Button>
-            <Button onClick={printReceipt}><Download className="h-4 w-4 mr-2" />Print Receipt</Button>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowReceipt(false)}>Close</Button>
+            <Button size="sm" onClick={printReceipt}><Download className="h-3 w-3 mr-1" />Print</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
