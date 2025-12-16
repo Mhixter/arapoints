@@ -4,9 +4,18 @@ import { config } from '../config/env';
 import { jambWorker } from './workers/jambWorker';
 import { waecWorker } from './workers/waecWorker';
 import { db } from '../config/database';
-import { rpaJobs, educationServices } from '../db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { rpaJobs, educationServices, servicePricing } from '../db/schema';
+import { eq, asc, and } from 'drizzle-orm';
 import { browserPool } from './browserPool';
+import { walletService } from '../services/walletService';
+
+const DEFAULT_PRICES: Record<string, number> = {
+  jamb: 1000,
+  waec: 1000,
+  neco: 1000,
+  nabteb: 1000,
+  nbais: 1000,
+};
 
 class RPABot {
   private isRunning: boolean = false;
@@ -226,9 +235,47 @@ class RPABot {
             updatedAt: new Date(),
           })
           .where(eq(educationServices.id, existingService.id));
+
+        // Auto-refund on failure
+        if (!result.success && existingService.userId) {
+          await this.refundFailedJob(existingService.userId, job.id, existingService.serviceType);
+        }
       }
     } catch (error: any) {
       logger.error('Failed to update education service', { jobId: job.id, error: error.message });
+    }
+  }
+
+  private async getServicePrice(serviceType: string): Promise<number> {
+    try {
+      const baseType = serviceType.replace('_result', '').replace('_service', '').replace('_score', '');
+      const [pricing] = await db.select()
+        .from(servicePricing)
+        .where(and(
+          eq(servicePricing.serviceType, baseType),
+          eq(servicePricing.isActive, true)
+        ))
+        .limit(1);
+      
+      if (pricing?.price) {
+        return parseFloat(pricing.price);
+      }
+      return DEFAULT_PRICES[baseType] || 1000;
+    } catch {
+      const baseType = serviceType.replace('_result', '').replace('_service', '').replace('_score', '');
+      return DEFAULT_PRICES[baseType] || 1000;
+    }
+  }
+
+  private async refundFailedJob(userId: string, jobId: string, serviceType: string): Promise<void> {
+    try {
+      const refundAmount = await this.getServicePrice(serviceType);
+      if (refundAmount > 0) {
+        await walletService.refundBalance(userId, refundAmount, `failed_${serviceType}_${jobId}`);
+        logger.info('Auto-refund processed for failed job', { userId, amount: refundAmount, jobId, serviceType });
+      }
+    } catch (error: any) {
+      logger.error('Failed to process auto-refund', { jobId, error: error.message });
     }
   }
 

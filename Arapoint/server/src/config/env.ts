@@ -12,7 +12,7 @@ export const config = {
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET || 'your_refresh_token_secret_here',
   
   // RPA Configuration
-  RPA_MAX_CONCURRENT_JOBS: parseInt(process.env.RPA_MAX_CONCURRENT_JOBS || '20'),
+  RPA_MAX_CONCURRENT_JOBS: parseInt(process.env.RPA_MAX_CONCURRENT_JOBS || '5'),
   RPA_JOB_TIMEOUT: parseInt(process.env.RPA_JOB_TIMEOUT || '60000'),
   RPA_REQUEST_TIMEOUT: parseInt(process.env.RPA_REQUEST_TIMEOUT || '45000'),
   RPA_RETRY_MAX: parseInt(process.env.RPA_RETRY_MAX || '3'),

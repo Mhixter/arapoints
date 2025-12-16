@@ -53,8 +53,14 @@ class BrowserPool {
           '--disable-dev-shm-usage',
           '--disable-gpu',
           '--disable-software-rasterizer',
-          '--single-process',
           '--no-zygote',
+          '--disable-background-networking',
+          '--disable-default-apps',
+          '--disable-extensions',
+          '--disable-sync',
+          '--disable-translate',
+          '--mute-audio',
+          '--no-first-run',
         ],
       });
 
