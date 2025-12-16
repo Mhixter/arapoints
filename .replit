@@ -38,3 +38,9 @@ externalPort = 80
 
 [userenv.shared]
 SENDGRID_FROM_EMAIL = "noreply@arapoint.com.ng"
+
+[userenv.development]
+VTPASS_SANDBOX = "true"
+
+[userenv.production]
+VTPASS_SANDBOX = "false"
