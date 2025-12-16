@@ -27,7 +27,12 @@ import AirtimeServices from "@/pages/dashboard/AirtimeServices";
 import DataServices from "@/pages/dashboard/DataServices";
 import ElectricityServices from "@/pages/dashboard/ElectricityServices";
 import CableServices from "@/pages/dashboard/CableServices";
+import CACServices from "@/pages/dashboard/CACServices";
 import FundWallet from "@/pages/dashboard/FundWallet";
+
+// CAC Agent Imports
+import CACAgentLogin from "@/pages/agent/CACAgentLogin";
+import CACAgentDashboard from "@/pages/agent/CACAgentDashboard";
 import BuyPINs from "@/pages/dashboard/BuyPINs";
 import Profile from "@/pages/dashboard/Profile";
 import Settings from "@/pages/dashboard/Settings";
@@ -46,6 +51,7 @@ import AdminAnalytics from "@/pages/admin/AdminAnalytics";
 import AdminPricing from "@/pages/admin/AdminPricing";
 import AdminRoles from "@/pages/admin/AdminRoles";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminCACServices from "@/pages/admin/AdminCACServices";
 import AdminCRUDLayout from "@/components/layout/AdminCRUDLayout";
 
 function Router() {
@@ -56,6 +62,10 @@ function Router() {
         <Route path="/auth/login" component={Login} />
         <Route path="/auth/signup" component={Signup} />
         <Route path="/admin/login" component={AdminLogin} />
+        
+        {/* CAC Agent Routes */}
+        <Route path="/agent/login" component={CACAgentLogin} />
+        <Route path="/agent/dashboard" component={CACAgentDashboard} />
         
         {/* Dashboard Routes */}
         <Route path="/dashboard">
@@ -128,6 +138,11 @@ function Router() {
         <Route path="/dashboard/cable">
           <DashboardLayout>
             <CableServices />
+          </DashboardLayout>
+        </Route>
+        <Route path="/dashboard/cac">
+          <DashboardLayout>
+            <CACServices />
           </DashboardLayout>
         </Route>
         <Route path="/dashboard/fund-wallet">
@@ -218,6 +233,12 @@ function Router() {
         <Route path="/admin/settings">
           <AdminCRUDLayout>
             <AdminSettings />
+          </AdminCRUDLayout>
+        </Route>
+
+        <Route path="/admin/cac">
+          <AdminCRUDLayout>
+            <AdminCACServices />
           </AdminCRUDLayout>
         </Route>
 

@@ -14,7 +14,8 @@ import {
   Search,
   Users,
   Gift,
-  BookOpen
+  BookOpen,
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/buy-pins", label: "Buy Exam PINs", icon: Gift },
     { href: "/dashboard/vtu", label: "VTU Services", icon: Smartphone },
     { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Zap },
+    { href: "/dashboard/cac", label: "CAC Registration", icon: Building2 },
   ];
 
   const NavContent = () => (

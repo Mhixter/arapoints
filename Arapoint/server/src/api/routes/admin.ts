@@ -15,8 +15,14 @@ import {
   dataServices,
   electricityServices,
   cableServices,
-  servicePricing
+  servicePricing,
+  cacAgents,
+  cacServiceTypes,
+  cacRegistrationRequests,
+  adminUsers,
+  adminRoles
 } from '../../db/schema';
+import bcrypt from 'bcryptjs';
 import { eq, desc, count, sql } from 'drizzle-orm';
 
 const router = Router();
@@ -906,6 +912,285 @@ router.delete('/rpa/providers/:providerName', async (req: Request, res: Response
   } catch (error: any) {
     logger.error('Delete RPA provider error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to delete RPA provider'));
+  }
+});
+
+router.get('/cac/agents', async (req: Request, res: Response) => {
+  try {
+    const agents = await db.select({
+      id: cacAgents.id,
+      adminUserId: cacAgents.adminUserId,
+      employeeId: cacAgents.employeeId,
+      specializations: cacAgents.specializations,
+      maxActiveRequests: cacAgents.maxActiveRequests,
+      currentActiveRequests: cacAgents.currentActiveRequests,
+      totalCompletedRequests: cacAgents.totalCompletedRequests,
+      isAvailable: cacAgents.isAvailable,
+      createdAt: cacAgents.createdAt,
+      name: adminUsers.name,
+      email: adminUsers.email,
+    })
+      .from(cacAgents)
+      .leftJoin(adminUsers, eq(cacAgents.adminUserId, adminUsers.id))
+      .orderBy(desc(cacAgents.createdAt));
+
+    res.json(formatResponse('success', 200, 'CAC agents retrieved', { agents }));
+  } catch (error: any) {
+    logger.error('Get CAC agents error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get CAC agents'));
+  }
+});
+
+router.post('/cac/agents', async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, employeeId, specializations, maxActiveRequests } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json(formatErrorResponse(400, 'Name, email, and password are required'));
+    }
+
+    const existingUser = await db.select()
+      .from(adminUsers)
+      .where(eq(adminUsers.email, email.toLowerCase()))
+      .limit(1);
+
+    if (existingUser.length > 0) {
+      return res.status(409).json(formatErrorResponse(409, 'Email already exists'));
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    let cacAgentRole = await db.select()
+      .from(adminRoles)
+      .where(eq(adminRoles.name, 'CAC_AGENT'))
+      .limit(1);
+
+    if (cacAgentRole.length === 0) {
+      const [newRole] = await db.insert(adminRoles).values({
+        name: 'CAC_AGENT',
+        description: 'CAC Agent role with access to CAC services only',
+        permissions: ['cac:view', 'cac:process', 'cac:update'],
+        isActive: true,
+      }).returning();
+      cacAgentRole = [newRole];
+    }
+
+    const [adminUser] = await db.insert(adminUsers).values({
+      name,
+      email: email.toLowerCase(),
+      passwordHash,
+      roleId: cacAgentRole[0].id,
+      isActive: true,
+    }).returning();
+
+    const [agent] = await db.insert(cacAgents).values({
+      adminUserId: adminUser.id,
+      employeeId: employeeId || `CAC${Date.now().toString(36).toUpperCase()}`,
+      specializations: specializations || [],
+      maxActiveRequests: maxActiveRequests || 10,
+      isAvailable: true,
+    }).returning();
+
+    logger.info('CAC agent created', { agentId: agent.id, email, createdBy: req.userId });
+
+    res.status(201).json(formatResponse('success', 201, 'CAC agent created successfully', {
+      agent: {
+        id: agent.id,
+        name,
+        email: email.toLowerCase(),
+        employeeId: agent.employeeId,
+        isAvailable: agent.isAvailable,
+      },
+    }));
+  } catch (error: any) {
+    logger.error('Create CAC agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create CAC agent'));
+  }
+});
+
+router.put('/cac/agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, email, employeeId, specializations, maxActiveRequests, isAvailable } = req.body;
+
+    const [agent] = await db.select()
+      .from(cacAgents)
+      .where(eq(cacAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'CAC agent not found'));
+    }
+
+    if (name || email) {
+      const updateData: any = { updatedAt: new Date() };
+      if (name) updateData.name = name;
+      if (email) updateData.email = email.toLowerCase();
+
+      await db.update(adminUsers)
+        .set(updateData)
+        .where(eq(adminUsers.id, agent.adminUserId!));
+    }
+
+    const agentUpdate: any = { updatedAt: new Date() };
+    if (employeeId !== undefined) agentUpdate.employeeId = employeeId;
+    if (specializations !== undefined) agentUpdate.specializations = specializations;
+    if (maxActiveRequests !== undefined) agentUpdate.maxActiveRequests = maxActiveRequests;
+    if (isAvailable !== undefined) agentUpdate.isAvailable = isAvailable;
+
+    await db.update(cacAgents)
+      .set(agentUpdate)
+      .where(eq(cacAgents.id, id));
+
+    logger.info('CAC agent updated', { agentId: id, updatedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'CAC agent updated successfully'));
+  } catch (error: any) {
+    logger.error('Update CAC agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update CAC agent'));
+  }
+});
+
+router.delete('/cac/agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [agent] = await db.select()
+      .from(cacAgents)
+      .where(eq(cacAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'CAC agent not found'));
+    }
+
+    await db.delete(cacAgents).where(eq(cacAgents.id, id));
+    
+    if (agent.adminUserId) {
+      await db.update(adminUsers)
+        .set({ isActive: false })
+        .where(eq(adminUsers.id, agent.adminUserId));
+    }
+
+    logger.info('CAC agent deleted', { agentId: id, deletedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'CAC agent deleted successfully'));
+  } catch (error: any) {
+    logger.error('Delete CAC agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to delete CAC agent'));
+  }
+});
+
+router.get('/cac/service-types', async (req: Request, res: Response) => {
+  try {
+    const services = await db.select()
+      .from(cacServiceTypes)
+      .orderBy(cacServiceTypes.name);
+
+    res.json(formatResponse('success', 200, 'CAC service types retrieved', { services }));
+  } catch (error: any) {
+    logger.error('Get CAC service types error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get service types'));
+  }
+});
+
+router.post('/cac/service-types', async (req: Request, res: Response) => {
+  try {
+    const { code, name, description, price, processingDays, requiredDocuments } = req.body;
+
+    if (!code || !name || !price) {
+      return res.status(400).json(formatErrorResponse(400, 'Code, name, and price are required'));
+    }
+
+    const [service] = await db.insert(cacServiceTypes).values({
+      code,
+      name,
+      description,
+      price: price.toString(),
+      processingDays: processingDays || 7,
+      requiredDocuments: requiredDocuments || [],
+      isActive: true,
+    }).returning();
+
+    logger.info('CAC service type created', { serviceId: service.id, code });
+
+    res.status(201).json(formatResponse('success', 201, 'CAC service type created', { service }));
+  } catch (error: any) {
+    logger.error('Create CAC service type error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create service type'));
+  }
+});
+
+router.put('/cac/service-types/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { name, description, price, processingDays, requiredDocuments, isActive } = req.body;
+
+    const updateData: any = { updatedAt: new Date() };
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = price.toString();
+    if (processingDays !== undefined) updateData.processingDays = processingDays;
+    if (requiredDocuments !== undefined) updateData.requiredDocuments = requiredDocuments;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const [updated] = await db.update(cacServiceTypes)
+      .set(updateData)
+      .where(eq(cacServiceTypes.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json(formatErrorResponse(404, 'Service type not found'));
+    }
+
+    logger.info('CAC service type updated', { serviceId: id });
+
+    res.json(formatResponse('success', 200, 'Service type updated', { service: updated }));
+  } catch (error: any) {
+    logger.error('Update CAC service type error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update service type'));
+  }
+});
+
+router.get('/cac/requests', async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
+
+    const requests = await db.select({
+      id: cacRegistrationRequests.id,
+      serviceType: cacRegistrationRequests.serviceType,
+      businessName: cacRegistrationRequests.businessName,
+      proprietorName: cacRegistrationRequests.proprietorName,
+      status: cacRegistrationRequests.status,
+      fee: cacRegistrationRequests.fee,
+      assignedAgentId: cacRegistrationRequests.assignedAgentId,
+      createdAt: cacRegistrationRequests.createdAt,
+      completedAt: cacRegistrationRequests.completedAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+      .from(cacRegistrationRequests)
+      .leftJoin(users, eq(cacRegistrationRequests.userId, users.id))
+      .orderBy(desc(cacRegistrationRequests.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [totalCount] = await db.select({ count: count() }).from(cacRegistrationRequests);
+
+    res.json(formatResponse('success', 200, 'CAC requests retrieved', {
+      requests,
+      pagination: {
+        page,
+        limit,
+        total: totalCount?.count || 0,
+        totalPages: Math.ceil((totalCount?.count || 0) / limit),
+      },
+    }));
+  } catch (error: any) {
+    logger.error('Get CAC requests error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get CAC requests'));
   }
 });
 

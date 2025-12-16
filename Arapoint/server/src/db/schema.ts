@@ -264,3 +264,97 @@ export const servicePricing = pgTable('service_pricing', {
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
+
+// CAC Service Types Catalog
+export const cacServiceTypes = pgTable('cac_service_types', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar('code', { length: 50 }).unique().notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
+  processingDays: integer('processing_days').default(7),
+  requiredDocuments: jsonb('required_documents').default('[]'),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// CAC Agents (linked to admin_users with CAC role)
+export const cacAgents = pgTable('cac_agents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  adminUserId: uuid('admin_user_id').references(() => adminUsers.id).unique(),
+  employeeId: varchar('employee_id', { length: 50 }),
+  specializations: jsonb('specializations').default('[]'),
+  maxActiveRequests: integer('max_active_requests').default(10),
+  currentActiveRequests: integer('current_active_requests').default(0),
+  totalCompletedRequests: integer('total_completed_requests').default(0),
+  isAvailable: boolean('is_available').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// CAC Registration Requests
+export const cacRegistrationRequests = pgTable('cac_registration_requests', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  serviceTypeId: uuid('service_type_id').references(() => cacServiceTypes.id),
+  serviceType: varchar('service_type', { length: 100 }).notNull(),
+  businessName: varchar('business_name', { length: 255 }).notNull(),
+  businessNature: varchar('business_nature', { length: 255 }),
+  businessAddress: text('business_address'),
+  businessState: varchar('business_state', { length: 100 }),
+  businessLga: varchar('business_lga', { length: 100 }),
+  proprietorName: varchar('proprietor_name', { length: 255 }),
+  proprietorPhone: varchar('proprietor_phone', { length: 20 }),
+  proprietorEmail: varchar('proprietor_email', { length: 255 }),
+  proprietorNin: varchar('proprietor_nin', { length: 11 }),
+  additionalProprietors: jsonb('additional_proprietors').default('[]'),
+  shareCapital: decimal('share_capital', { precision: 15, scale: 2 }),
+  objectives: text('objectives'),
+  status: varchar('status', { length: 50 }).default('submitted'),
+  assignedAgentId: uuid('assigned_agent_id').references(() => cacAgents.id),
+  assignedAt: timestamp('assigned_at'),
+  fee: decimal('fee', { precision: 10, scale: 2 }).notNull(),
+  isPaid: boolean('is_paid').default(false),
+  paymentReference: varchar('payment_reference', { length: 100 }),
+  cacRegistrationNumber: varchar('cac_registration_number', { length: 100 }),
+  certificateUrl: varchar('certificate_url', { length: 500 }),
+  rejectionReason: text('rejection_reason'),
+  customerNotes: text('customer_notes'),
+  agentNotes: text('agent_notes'),
+  submittedToCacAt: timestamp('submitted_to_cac_at'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// CAC Request Documents
+export const cacRequestDocuments = pgTable('cac_request_documents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  requestId: uuid('request_id').references(() => cacRegistrationRequests.id).notNull(),
+  documentType: varchar('document_type', { length: 100 }).notNull(),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  fileUrl: varchar('file_url', { length: 500 }).notNull(),
+  fileSize: integer('file_size'),
+  mimeType: varchar('mime_type', { length: 100 }),
+  checksum: varchar('checksum', { length: 64 }),
+  isVerified: boolean('is_verified').default(false),
+  verifiedBy: uuid('verified_by').references(() => cacAgents.id),
+  verifiedAt: timestamp('verified_at'),
+  version: integer('version').default(1),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// CAC Request Activity Log
+export const cacRequestActivity = pgTable('cac_request_activity', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  requestId: uuid('request_id').references(() => cacRegistrationRequests.id).notNull(),
+  actorType: varchar('actor_type', { length: 20 }).notNull(),
+  actorId: uuid('actor_id'),
+  action: varchar('action', { length: 100 }).notNull(),
+  previousStatus: varchar('previous_status', { length: 50 }),
+  newStatus: varchar('new_status', { length: 50 }),
+  comment: text('comment'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+});

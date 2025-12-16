@@ -15,7 +15,8 @@ import {
   Search,
   ChevronDown,
   X,
-  ChevronLeft
+  ChevronLeft,
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -29,17 +30,17 @@ import arapointLogo from "@assets/generated_images/arapoint_solution_logo.png";
 const ADMIN_ROLES = {
   super_admin: {
     name: "Super Admin",
-    permissions: ["users", "identity", "bvn", "education", "vtu", "pricing", "analytics", "settings", "roles"],
+    permissions: ["users", "identity", "bvn", "education", "vtu", "cac", "pricing", "analytics", "settings", "roles"],
     color: "bg-red-500"
   },
   admin: {
     name: "Admin",
-    permissions: ["users", "identity", "bvn", "education", "vtu", "analytics"],
+    permissions: ["users", "identity", "bvn", "education", "vtu", "cac", "analytics"],
     color: "bg-blue-500"
   },
   operator: {
     name: "Operator",
-    permissions: ["identity", "bvn", "education", "vtu"],
+    permissions: ["identity", "bvn", "education", "vtu", "cac"],
     color: "bg-green-500"
   },
   viewer: {
@@ -56,6 +57,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/bvn", label: "BVN Services", icon: ShieldCheck, permission: "bvn" },
   { href: "/admin/education", label: "Education Services", icon: GraduationCap, permission: "education" },
   { href: "/admin/vtu", label: "VTU Services", icon: Smartphone, permission: "vtu" },
+  { href: "/admin/cac", label: "CAC Services", icon: Building2, permission: "cac" },
   { href: "/admin/pricing", label: "Pricing Management", icon: DollarSign, permission: "pricing" },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "analytics" },
   { href: "/admin/roles", label: "Role Management", icon: Shield, permission: "roles" },
