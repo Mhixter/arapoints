@@ -632,37 +632,49 @@ export class WAECWorker extends BaseWorker {
       }
     }
 
-    if (hasCardError) {
-      return {
-        registrationNumber: data.registrationNumber,
-        examYear: data.examYear,
-        examType: data.examType,
-        subjects: [],
-        verificationStatus: 'error',
-        message: 'The scratch card has been exhausted or invalid. Please purchase a new card.',
-      };
-    }
+    const extractWaecError = (): string => {
+      try {
+        const url = new URL(resultUrl);
+        const errTitle = url.searchParams.get('errTitle');
+        const errMsg = url.searchParams.get('errMsg');
+        if (errTitle) return decodeURIComponent(errTitle).replace(/&amp;/g, '&');
+        if (errMsg) return decodeURIComponent(errMsg).replace(/&amp;/g, '&');
+      } catch {}
+      
+      const errorLines = pageText.split('\n').filter(line => 
+        line.toLowerCase().includes('error') || 
+        line.toLowerCase().includes('invalid') || 
+        line.toLowerCase().includes('exceeded') ||
+        line.toLowerCase().includes('purchase')
+      );
+      if (errorLines.length > 0) {
+        return errorLines[0].trim();
+      }
+      return pageText.substring(0, 200).trim();
+    };
 
-    if (hasInvalidError) {
-      const errorMatch = pageText.match(/(?:invalid|not found|incorrect|does not exist)[^.]*\.?/i);
+    if (hasCardError || hasInvalidError) {
+      const waecError = extractWaecError();
+      logger.info('Extracted WAEC error', { waecError });
       return {
         registrationNumber: data.registrationNumber,
         examYear: data.examYear,
         examType: data.examType,
         subjects: [],
-        verificationStatus: 'not_found',
-        message: errorMatch ? errorMatch[0].trim() : 'The registration number or card details are invalid.',
+        verificationStatus: hasCardError ? 'error' : 'not_found',
+        message: waecError,
       };
     }
 
     if (!hasResults) {
+      const waecError = extractWaecError();
       return {
         registrationNumber: data.registrationNumber,
         examYear: data.examYear,
         examType: data.examType,
         subjects: [],
         verificationStatus: 'error',
-        message: 'Could not find results on WAEC response page. The portal may be experiencing issues.',
+        message: waecError || 'Could not find results on WAEC response page. The portal may be experiencing issues.',
       };
     }
 
