@@ -20,7 +20,9 @@ import {
   cacServiceTypes,
   cacRegistrationRequests,
   adminUsers,
-  adminRoles
+  adminRoles,
+  identityAgents,
+  identityServiceRequests
 } from '../../db/schema';
 import bcrypt from 'bcryptjs';
 import { eq, desc, count, sql } from 'drizzle-orm';
@@ -1376,6 +1378,195 @@ router.delete('/roles/:id', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Delete role error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to delete role'));
+  }
+});
+
+router.get('/users/search', async (req: Request, res: Response) => {
+  try {
+    const { q } = req.query;
+    if (!q || typeof q !== 'string' || q.length < 2) {
+      return res.json(formatResponse('success', 200, 'Search query too short', { users: [] }));
+    }
+
+    const searchResults = await db.select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      phone: users.phone,
+    })
+      .from(users)
+      .where(sql`(LOWER(${users.email}) LIKE ${`%${q.toLowerCase()}%`} OR LOWER(${users.name}) LIKE ${`%${q.toLowerCase()}%`})`)
+      .limit(10);
+
+    res.json(formatResponse('success', 200, 'Users found', { users: searchResults }));
+  } catch (error: any) {
+    logger.error('Search users error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to search users'));
+  }
+});
+
+router.get('/identity-agents', async (req: Request, res: Response) => {
+  try {
+    const agents = await db.select({
+      id: identityAgents.id,
+      userId: identityAgents.userId,
+      specializations: identityAgents.specializations,
+      isActive: identityAgents.isActive,
+      createdAt: identityAgents.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+      userPhone: users.phone,
+    })
+      .from(identityAgents)
+      .leftJoin(users, eq(identityAgents.userId, users.id))
+      .orderBy(desc(identityAgents.createdAt));
+
+    res.json(formatResponse('success', 200, 'Identity agents retrieved', { agents }));
+  } catch (error: any) {
+    logger.error('Get identity agents error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get identity agents'));
+  }
+});
+
+router.post('/identity-agents', async (req: Request, res: Response) => {
+  try {
+    const { userId, specializations } = req.body;
+
+    if (!userId) {
+      return res.status(400).json(formatErrorResponse(400, 'User ID is required'));
+    }
+
+    const [existingAgent] = await db.select()
+      .from(identityAgents)
+      .where(eq(identityAgents.userId, userId))
+      .limit(1);
+
+    if (existingAgent) {
+      return res.status(409).json(formatErrorResponse(409, 'User is already an identity agent'));
+    }
+
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!user) {
+      return res.status(404).json(formatErrorResponse(404, 'User not found'));
+    }
+
+    const [agent] = await db.insert(identityAgents).values({
+      userId,
+      name: user.name || 'Agent',
+      email: user.email,
+      phone: user.phone,
+      specializations: specializations ? JSON.parse(specializations) : ['nin_validation', 'ipe_clearance', 'nin_personalization'],
+      isActive: true,
+    }).returning();
+
+    logger.info('Identity agent created', { agentId: agent.id, userId, createdBy: req.userId });
+
+    res.status(201).json(formatResponse('success', 201, 'Identity agent created', {
+      agent: {
+        id: agent.id,
+        userId,
+        userName: user.name,
+        userEmail: user.email,
+        isActive: agent.isActive,
+      },
+    }));
+  } catch (error: any) {
+    logger.error('Create identity agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create identity agent'));
+  }
+});
+
+router.put('/identity-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { specializations, isActive } = req.body;
+
+    const [agent] = await db.select()
+      .from(identityAgents)
+      .where(eq(identityAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'Identity agent not found'));
+    }
+
+    const updateData: any = { updatedAt: new Date() };
+    if (specializations !== undefined) updateData.specializations = specializations;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    await db.update(identityAgents)
+      .set(updateData)
+      .where(eq(identityAgents.id, id));
+
+    logger.info('Identity agent updated', { agentId: id, updatedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'Identity agent updated'));
+  } catch (error: any) {
+    logger.error('Update identity agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update identity agent'));
+  }
+});
+
+router.delete('/identity-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [agent] = await db.select()
+      .from(identityAgents)
+      .where(eq(identityAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'Identity agent not found'));
+    }
+
+    await db.delete(identityAgents).where(eq(identityAgents.id, id));
+
+    logger.info('Identity agent deleted', { agentId: id, deletedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'Identity agent deleted'));
+  } catch (error: any) {
+    logger.error('Delete identity agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to delete identity agent'));
+  }
+});
+
+router.get('/identity-requests', async (req: Request, res: Response) => {
+  try {
+    const { limit = '50', status } = req.query;
+
+    let query = db.select({
+      id: identityServiceRequests.id,
+      trackingId: identityServiceRequests.trackingId,
+      serviceType: identityServiceRequests.serviceType,
+      status: identityServiceRequests.status,
+      fee: identityServiceRequests.fee,
+      isPaid: identityServiceRequests.isPaid,
+      createdAt: identityServiceRequests.createdAt,
+      completedAt: identityServiceRequests.completedAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+      .from(identityServiceRequests)
+      .leftJoin(users, eq(identityServiceRequests.userId, users.id))
+      .orderBy(desc(identityServiceRequests.createdAt))
+      .limit(parseInt(limit as string) || 50);
+
+    let requests;
+    if (status && status !== 'all') {
+      requests = await query.where(eq(identityServiceRequests.status, status as string));
+    } else {
+      requests = await query;
+    }
+
+    res.json(formatResponse('success', 200, 'Identity requests retrieved', { requests }));
+  } catch (error: any) {
+    logger.error('Get identity requests error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get identity requests'));
   }
 });
 

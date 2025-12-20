@@ -16,7 +16,8 @@ import {
   ChevronDown,
   X,
   ChevronLeft,
-  Building2
+  Building2,
+  IdCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -58,6 +59,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/education", label: "Education Services", icon: GraduationCap, permission: "education" },
   { href: "/admin/vtu", label: "VTU Services", icon: Smartphone, permission: "vtu" },
   { href: "/admin/cac", label: "CAC Services", icon: Building2, permission: "cac" },
+  { href: "/admin/identity-agents", label: "Identity Agents", icon: IdCard, permission: "identity" },
   { href: "/admin/pricing", label: "Pricing Management", icon: DollarSign, permission: "pricing" },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "analytics" },
   { href: "/admin/roles", label: "Role Management", icon: Shield, permission: "roles" },

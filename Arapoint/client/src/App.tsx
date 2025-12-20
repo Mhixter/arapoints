@@ -54,6 +54,7 @@ import AdminPricing from "@/pages/admin/AdminPricing";
 import AdminRoles from "@/pages/admin/AdminRoles";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminCACServices from "@/pages/admin/AdminCACServices";
+import AdminIdentityAgents from "@/pages/admin/AdminIdentityAgents";
 import AdminCRUDLayout from "@/components/layout/AdminCRUDLayout";
 
 function Router() {
@@ -119,6 +120,11 @@ function Router() {
       <Route path="/admin/cac">
         <AdminCRUDLayout>
           <AdminCACServices />
+        </AdminCRUDLayout>
+      </Route>
+      <Route path="/admin/identity-agents">
+        <AdminCRUDLayout>
+          <AdminIdentityAgents />
         </AdminCRUDLayout>
       </Route>
       
