@@ -357,12 +357,13 @@ export default function AirtimeServices() {
       </Tabs>
 
       <Dialog open={showReceipt} onOpenChange={setShowReceipt}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[340px] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5 text-primary" />
               Transaction Receipt
             </DialogTitle>
+            <DialogDescription>Airtime purchase details</DialogDescription>
           </DialogHeader>
           {selectedTransaction && (
             <div className="space-y-4 py-4">
@@ -410,7 +411,7 @@ export default function AirtimeServices() {
       </Dialog>
 
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[340px] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />

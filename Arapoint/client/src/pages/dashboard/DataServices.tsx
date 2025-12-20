@@ -387,7 +387,7 @@ export default function DataServices() {
       </Tabs>
 
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[340px] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />
@@ -436,6 +436,7 @@ export default function DataServices() {
         <DialogContent className="max-w-[340px] sm:max-w-[380px] p-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-2">
             <DialogTitle className="flex items-center gap-2 text-green-600 text-base"><Receipt className="h-4 w-4" />Receipt</DialogTitle>
+            <DialogDescription>Data purchase details</DialogDescription>
           </DialogHeader>
           {selectedTransaction && (
             <div className="space-y-3 text-sm" id="receipt-content">

@@ -807,7 +807,7 @@ export default function CACServices() {
       </Tabs>
 
       <Dialog open={showConfirmation} onOpenChange={setShowConfirmation}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-[340px] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-amber-500" />
@@ -844,7 +844,7 @@ export default function CACServices() {
       </Dialog>
 
       <Dialog open={showChat} onOpenChange={setShowChat}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+        <DialogContent className="max-w-[340px] sm:max-w-lg p-4 sm:p-6 max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-primary" />
