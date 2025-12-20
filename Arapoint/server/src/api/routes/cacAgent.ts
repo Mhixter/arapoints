@@ -8,6 +8,7 @@ import {
   cacRequestDocuments,
   cacRequestActivity,
   cacRequestMessages,
+  cacServiceTypes,
   adminUsers,
   users
 } from '../../db/schema';
@@ -620,6 +621,97 @@ router.get('/requests/:id/documents', cacAgentAuthMiddleware, async (req: Reques
   } catch (error: any) {
     logger.error('Get documents error (agent)', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to get documents'));
+  }
+});
+
+router.get('/service-types', cacAgentAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const services = await db.select()
+      .from(cacServiceTypes)
+      .orderBy(cacServiceTypes.name);
+
+    res.json(formatResponse('success', 200, 'CAC service types retrieved', { services }));
+  } catch (error: any) {
+    logger.error('Get CAC service types error (agent)', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get service types'));
+  }
+});
+
+router.put('/service-types/:id', cacAgentAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const agentId = (req as any).agentId;
+    const { price, processingDays, isActive } = req.body;
+
+    const [existingService] = await db.select()
+      .from(cacServiceTypes)
+      .where(eq(cacServiceTypes.id, id))
+      .limit(1);
+
+    if (!existingService) {
+      return res.status(404).json(formatErrorResponse(404, 'Service type not found'));
+    }
+
+    const updateData: any = { updatedAt: new Date() };
+    
+    if (price !== undefined) {
+      updateData.price = price.toString();
+    }
+    if (processingDays !== undefined) {
+      updateData.processingDays = processingDays;
+    }
+    if (isActive !== undefined) {
+      updateData.isActive = isActive;
+    }
+
+    const [updated] = await db.update(cacServiceTypes)
+      .set(updateData)
+      .where(eq(cacServiceTypes.id, id))
+      .returning();
+
+    logger.info('CAC service type updated', { agentId, serviceId: id, updates: updateData });
+
+    res.json(formatResponse('success', 200, 'Service type updated successfully', { service: updated }));
+  } catch (error: any) {
+    logger.error('Update service type error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update service type'));
+  }
+});
+
+router.post('/service-types', cacAgentAuthMiddleware, async (req: Request, res: Response) => {
+  try {
+    const agentId = (req as any).agentId;
+    const { code, name, description, price, processingDays, requiredDocuments } = req.body;
+
+    if (!code || !name || !price) {
+      return res.status(400).json(formatErrorResponse(400, 'Code, name, and price are required'));
+    }
+
+    const [existing] = await db.select()
+      .from(cacServiceTypes)
+      .where(eq(cacServiceTypes.code, code))
+      .limit(1);
+
+    if (existing) {
+      return res.status(400).json(formatErrorResponse(400, 'Service type code already exists'));
+    }
+
+    const [newService] = await db.insert(cacServiceTypes).values({
+      code,
+      name,
+      description: description || '',
+      price: price.toString(),
+      processingDays: processingDays || 7,
+      requiredDocuments: requiredDocuments || [],
+      isActive: true,
+    }).returning();
+
+    logger.info('CAC service type created', { agentId, serviceId: newService.id });
+
+    res.status(201).json(formatResponse('success', 201, 'Service type created successfully', { service: newService }));
+  } catch (error: any) {
+    logger.error('Create service type error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create service type'));
   }
 });
 

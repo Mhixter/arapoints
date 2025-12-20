@@ -6,12 +6,143 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Loader2, AlertCircle, ArrowLeft, Check, History, FileText, Clock, CheckCircle2, XCircle, MessageCircle, Send, X, Download, Shield } from "lucide-react";
+import { Building2, Loader2, AlertCircle, ArrowLeft, Check, History, FileText, Clock, CheckCircle2, XCircle, MessageCircle, Send, X, Download, Shield, Upload, Image } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const CAC_BUSINESS_NATURES = [
+  "Abattoir and Meat Selling Services",
+  "Accommodation Services",
+  "Accounting/Auditing Consultancy",
+  "Accounting/Auditing, Taxation and Financial Management Consultancy",
+  "Advertising and Marketing Services",
+  "Agricultural Engineering",
+  "Agricultural Products Trading",
+  "Air Transport Services",
+  "Aluminum Manufacturing, Works, Sales and Fittings",
+  "Ambulance Services",
+  "Animal Husbandry Services",
+  "Apprenticeship and Training Services",
+  "Aquarium Services",
+  "Arbitration/Mediation Services",
+  "Architectural Practice and Consultancy",
+  "Art Galleries, Museums and Monuments Services",
+  "Auto Parts Sales and Services",
+  "Automobile Repairs and Services",
+  "Banking and Financial Services",
+  "Barbing/Hair Dressing Services",
+  "Beauty and Cosmetics Services",
+  "Beverages Production and Sales",
+  "Block Making and Building Materials",
+  "Broadcasting Services",
+  "Building Construction",
+  "Business Consulting",
+  "Catering Services",
+  "Chemical and Allied Products",
+  "Civil Engineering",
+  "Cleaning Services",
+  "Clothing and Fashion",
+  "Communications and Telecommunications",
+  "Computer Hardware and Software Sales",
+  "Construction and Engineering",
+  "Crop and Animal Production",
+  "Curriculum Planning/Development",
+  "Cybercafe and Business Center",
+  "Deal in General Goods and Manufacturers' Representatives",
+  "Dental Practices and Services",
+  "Domestic Support Services",
+  "Driving School Services",
+  "Dry Cleaning and Laundry Services",
+  "E-Commerce and Online Trading",
+  "Education",
+  "Educational Services and Consultancy",
+  "Electrical Engineering Services",
+  "Electronics Sales and Repairs",
+  "Entertainment and Events Management",
+  "Environmental Consultancy",
+  "Estate Agency and Property Management",
+  "Events Management and Planning",
+  "Extraction of Crude Petroleum and Natural Gas",
+  "Farming",
+  "Fashion Designing/Tailoring Services",
+  "Feasibility Studies",
+  "Film Production Services",
+  "Financial Consultancy",
+  "Financial Services Activities",
+  "Fire and Safety Services",
+  "Fish Farming/Aquaculture",
+  "Fishing and Aquaculture",
+  "Food and Beverages Services",
+  "Food Production and Processing",
+  "Freight Forwarding",
+  "Fuel/Petroleum Products Sales",
+  "Furniture Making and Sales",
+  "General Contractors",
+  "General Merchandise Trading",
+  "General Trading",
+  "Health and Medical Services",
+  "Haulage and Logistics",
+  "Hospitality Services",
+  "Hotel and Accommodation Services",
+  "Human Resource Management",
+  "ICT Consulting and Services",
+  "Import and Export",
+  "Information Technology Services",
+  "Insurance Services",
+  "Interior Decoration",
+  "Internet Services",
+  "Investment and Securities",
+  "Jewelry Making and Sales",
+  "Laboratory Services",
+  "Land Surveying",
+  "Legal Services and Consultancy",
+  "Livestock Farming",
+  "Logistics and Supply Chain",
+  "Manufacturing",
+  "Marine and Shipping Services",
+  "Marketing and Sales",
+  "Mechanical Engineering",
+  "Media and Publishing",
+  "Medical Laboratory Services",
+  "Mining and Quarrying",
+  "Oil and Gas Services",
+  "Packaging Services",
+  "Pharmaceutical Services",
+  "Photography and Video Services",
+  "Plumbing Services",
+  "Poultry Farming",
+  "Printing and Publishing",
+  "Project Management",
+  "Property Development",
+  "Public Relations",
+  "Real Estate",
+  "Recreation and Sports",
+  "Recycling Services",
+  "Renewable Energy",
+  "Restaurant and Food Services",
+  "Retail Trading",
+  "Road Transportation",
+  "Security Services",
+  "Software Development",
+  "Solar Energy Installation",
+  "Stationery and Office Supplies",
+  "Supermarket and Retail",
+  "Telecommunications",
+  "Textile Manufacturing",
+  "Tourism and Travel Agency",
+  "Training and Capacity Building",
+  "Transportation and Logistics",
+  "Waste Management",
+  "Water Supply and Treatment",
+  "Welding and Fabrication",
+  "Wholesale and Retail Trade",
+  "Wood Processing and Furniture",
+];
 
 const NIGERIAN_STATES = [
   'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 
@@ -55,6 +186,35 @@ export default function CACServices() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [businessNatureOpen, setBusinessNatureOpen] = useState(false);
+  const [passportPreview, setPassportPreview] = useState<string | null>(null);
+  const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
+  const [ninSlipPreview, setNinSlipPreview] = useState<string | null>(null);
+  const [uploadingPassport, setUploadingPassport] = useState(false);
+  const [uploadingSignature, setUploadingSignature] = useState(false);
+  const [uploadingNinSlip, setUploadingNinSlip] = useState(false);
+
+  const handleFileUpload = async (file: File, type: 'passport' | 'signature' | 'ninSlip') => {
+    const setUploading = type === 'passport' ? setUploadingPassport : type === 'signature' ? setUploadingSignature : setUploadingNinSlip;
+    const setPreview = type === 'passport' ? setPassportPreview : type === 'signature' ? setSignaturePreview : setNinSlipPreview;
+    const fieldName = type === 'passport' ? 'passportPhotoUrl' : type === 'signature' ? 'signatureUrl' : 'ninSlipUrl';
+    
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setPreview(base64);
+        setFormData((prev: any) => ({ ...prev, [fieldName]: base64 }));
+      };
+      reader.readAsDataURL(file);
+      toast({ title: "Uploaded", description: `${type === 'passport' ? 'Passport photo' : type === 'signature' ? 'Signature' : 'NIN slip'} uploaded successfully` });
+    } catch (error) {
+      toast({ title: "Upload failed", description: "Failed to upload file", variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     fetchServiceTypes();
@@ -282,12 +442,39 @@ export default function CACServices() {
                     <p className="text-xs text-muted-foreground">Provide 2-3 name options in case your first choice is taken</p>
                   </div>
                   <div className="space-y-2">
-                    <Label>Nature of Business</Label>
-                    <Input 
-                      placeholder="e.g., Trading, Consulting, Technology" 
-                      value={formData.businessNature || ''} 
-                      onChange={(e) => handleInputChange('businessNature', e.target.value)} 
-                    />
+                    <Label>Nature of Business *</Label>
+                    <Popover open={businessNatureOpen} onOpenChange={setBusinessNatureOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={businessNatureOpen} className="w-full justify-between h-10 font-normal">
+                          {formData.businessNature || "Select nature of business..."}
+                          <Check className={`ml-2 h-4 w-4 shrink-0 ${formData.businessNature ? "opacity-100" : "opacity-0"}`} />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search business category..." />
+                          <CommandList>
+                            <CommandEmpty>No category found.</CommandEmpty>
+                            <CommandGroup className="max-h-[300px] overflow-y-auto">
+                              {CAC_BUSINESS_NATURES.map((nature) => (
+                                <CommandItem
+                                  key={nature}
+                                  value={nature}
+                                  onSelect={() => {
+                                    handleInputChange('businessNature', nature);
+                                    setBusinessNatureOpen(false);
+                                  }}
+                                >
+                                  <Check className={`mr-2 h-4 w-4 ${formData.businessNature === nature ? "opacity-100" : "opacity-0"}`} />
+                                  {nature}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <p className="text-xs text-muted-foreground">Select from CAC approved categories</p>
                   </div>
                 </div>
 
@@ -394,6 +581,151 @@ export default function CACServices() {
                     value={formData.customerNotes || ''} 
                     onChange={(e) => handleInputChange('customerNotes', e.target.value)} 
                   />
+                </div>
+
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <Upload className="h-5 w-5" />
+                    Required Documents
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">Upload clear images of the following documents</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <Image className="h-4 w-4" />
+                        Passport Photo *
+                      </Label>
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors">
+                        {passportPreview ? (
+                          <div className="relative">
+                            <img src={passportPreview} alt="Passport" className="w-24 h-28 object-cover mx-auto rounded" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-100 hover:bg-red-200"
+                              onClick={() => {
+                                setPassportPreview(null);
+                                setFormData((prev: any) => ({ ...prev, passportPhotoUrl: null }));
+                              }}
+                            >
+                              <X className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer block">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'passport')}
+                              disabled={uploadingPassport}
+                            />
+                            {uploadingPassport ? (
+                              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+                            ) : (
+                              <>
+                                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-xs text-muted-foreground">Click to upload</p>
+                                <p className="text-xs text-muted-foreground">White background passport</p>
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Signature on White Paper *
+                      </Label>
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors">
+                        {signaturePreview ? (
+                          <div className="relative">
+                            <img src={signaturePreview} alt="Signature" className="w-32 h-16 object-contain mx-auto rounded" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-100 hover:bg-red-200"
+                              onClick={() => {
+                                setSignaturePreview(null);
+                                setFormData((prev: any) => ({ ...prev, signatureUrl: null }));
+                              }}
+                            >
+                              <X className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer block">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'signature')}
+                              disabled={uploadingSignature}
+                            />
+                            {uploadingSignature ? (
+                              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+                            ) : (
+                              <>
+                                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-xs text-muted-foreground">Click to upload</p>
+                                <p className="text-xs text-muted-foreground">Sign on plain white paper</p>
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        NIN Slip *
+                      </Label>
+                      <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors">
+                        {ninSlipPreview ? (
+                          <div className="relative">
+                            <img src={ninSlipPreview} alt="NIN Slip" className="w-32 h-20 object-contain mx-auto rounded" />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="absolute -top-2 -right-2 h-6 w-6 p-0 rounded-full bg-red-100 hover:bg-red-200"
+                              onClick={() => {
+                                setNinSlipPreview(null);
+                                setFormData((prev: any) => ({ ...prev, ninSlipUrl: null }));
+                              }}
+                            >
+                              <X className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <label className="cursor-pointer block">
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              className="hidden"
+                              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], 'ninSlip')}
+                              disabled={uploadingNinSlip}
+                            />
+                            {uploadingNinSlip ? (
+                              <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary" />
+                            ) : (
+                              <>
+                                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-xs text-muted-foreground">Click to upload</p>
+                                <p className="text-xs text-muted-foreground">NIMC NIN slip or virtual</p>
+                              </>
+                            )}
+                          </label>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <Button 
