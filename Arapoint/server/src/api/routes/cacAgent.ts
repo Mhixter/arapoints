@@ -643,6 +643,10 @@ router.put('/service-types/:id', cacAgentAuthMiddleware, async (req: Request, re
     const agentId = (req as any).agentId;
     const { price, processingDays, isActive } = req.body;
 
+    if (!id) {
+      return res.status(400).json(formatErrorResponse(400, 'Invalid service ID'));
+    }
+
     const [existingService] = await db.select()
       .from(cacServiceTypes)
       .where(eq(cacServiceTypes.id, id))
@@ -719,6 +723,10 @@ router.delete('/service-types/:id', cacAgentAuthMiddleware, async (req: Request,
   try {
     const { id } = req.params;
     const agentId = (req as any).agentId;
+
+    if (!id) {
+      return res.status(400).json(formatErrorResponse(400, 'Invalid service ID'));
+    }
 
     const [existingService] = await db.select()
       .from(cacServiceTypes)
