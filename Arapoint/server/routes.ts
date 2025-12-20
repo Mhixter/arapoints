@@ -18,6 +18,7 @@ import adminRoutes from "./src/api/routes/admin";
 import dashboardRoutes from "./src/api/routes/dashboard";
 import cacRoutes from "./src/api/routes/cac";
 import cacAgentRoutes from "./src/api/routes/cacAgent";
+import identityAgentRoutes from "./src/api/routes/identity-agent";
 
 import { publicRateLimiter, authenticatedRateLimiter } from "./src/api/middleware/rateLimit";
 import { errorHandler } from "./src/api/middleware/errorHandler";
@@ -138,6 +139,7 @@ export async function registerRoutes(
   
   app.use('/api/cac', authenticatedRateLimiter, cacRoutes);
   app.use('/api/cac-agent', cacAgentRoutes);
+  app.use('/api/identity-agent', authenticatedRateLimiter, identityAgentRoutes);
 
   app.use(errorHandler);
 
