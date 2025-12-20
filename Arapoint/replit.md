@@ -165,6 +165,7 @@ npm run dev
 - Maximum 20 concurrent RPA jobs with exponential backoff retry
 
 ## Recent Changes
+- 2025-12-20: Fixed CAC service type CRUD endpoints to handle UUID string IDs correctly (removed incorrect parseInt conversion)
 - 2025-12-20: Added CAC agent price management UI with tabbed interface for managing service pricing
 - 2025-12-20: Added searchable business nature dropdown with 120+ CAC approved categories
 - 2025-12-20: Added document upload UI for CAC registration (passport photo, signature, NIN slip) using base64 encoding
