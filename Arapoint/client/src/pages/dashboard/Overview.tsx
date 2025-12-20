@@ -6,6 +6,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { walletApi } from "@/lib/api/wallet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface DashboardStats {
   user: {
@@ -52,6 +55,9 @@ export default function Overview() {
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [generatingAccount, setGeneratingAccount] = useState(false);
+  const [showNinDialog, setShowNinDialog] = useState(false);
+  const [ninInput, setNinInput] = useState("");
+  const [verifyingNin, setVerifyingNin] = useState(false);
 
   const getAuthToken = () => localStorage.getItem('accessToken');
 
@@ -131,31 +137,61 @@ export default function Overview() {
     fetchVirtualAccount();
   }, []);
 
-  const handleGenerateAccount = async () => {
-    setGeneratingAccount(true);
+  const handleOpenNinDialog = () => {
+    setNinInput("");
+    setShowNinDialog(true);
+  };
+
+  const handleNinSubmit = async () => {
+    if (!ninInput || ninInput.length !== 11) {
+      toast({
+        title: "Invalid NIN",
+        description: "Please enter a valid 11-digit NIN.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setVerifyingNin(true);
     try {
-      const response = await walletApi.generateVirtualAccount();
-      if (response?.account) {
-        setVirtualAccount(response.account);
+      const token = getAuthToken();
+      if (!token) {
+        throw new Error("Please login to continue");
+      }
+
+      const response = await fetch('/api/wallet/virtual-account/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ nin: ninInput }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Account generation failed');
+      }
+
+      setShowNinDialog(false);
+      setNinInput("");
+
+      if (data.data?.account) {
+        setVirtualAccount(data.data.account);
         toast({
           title: "Account Generated",
-          description: "Your virtual account has been created successfully.",
-        });
-      } else {
-        toast({
-          title: "Failed",
-          description: "Could not generate virtual account.",
-          variant: "destructive",
+          description: "Your virtual bank account has been created successfully via PayVessel.",
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to generate virtual account.",
+        title: "Account Generation Failed",
+        description: error.message || "PayVessel could not verify your NIN. Please check and try again.",
         variant: "destructive",
       });
     } finally {
-      setGeneratingAccount(false);
+      setVerifyingNin(false);
     }
   };
 
@@ -257,15 +293,8 @@ export default function Overview() {
               <div className="flex flex-col items-center justify-center py-6">
                 <Building2 className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground mb-3">No virtual account yet</p>
-                <Button onClick={handleGenerateAccount} disabled={generatingAccount}>
-                  {generatingAccount ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    "Generate Account"
-                  )}
+                <Button onClick={handleOpenNinDialog}>
+                  Generate Account
                 </Button>
               </div>
             )}
@@ -394,6 +423,63 @@ export default function Overview() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={showNinDialog} onOpenChange={setShowNinDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Verify Your NIN
+            </DialogTitle>
+            <DialogDescription>
+              PayVessel requires NIN verification to generate your virtual bank account. Enter your 11-digit NIN below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nin">NIN (11 digits)</Label>
+              <Input
+                id="nin"
+                type="text"
+                placeholder="Enter your 11-digit NIN"
+                value={ninInput}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  setNinInput(value);
+                }}
+                maxLength={11}
+                className="font-mono text-lg tracking-wider"
+              />
+              <p className="text-xs text-muted-foreground">
+                {ninInput.length}/11 digits entered
+              </p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                <strong>Powered by PayVessel:</strong> Your NIN will be verified directly by PayVessel to create your dedicated virtual bank account.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowNinDialog(false)} disabled={verifyingNin}>
+              Cancel
+            </Button>
+            <Button onClick={handleNinSubmit} disabled={verifyingNin || ninInput.length !== 11}>
+              {verifyingNin ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  Verify & Generate Account
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -90,13 +90,27 @@ router.get('/virtual-account', async (req: Request, res: Response) => {
 
 router.post('/virtual-account/generate', async (req: Request, res: Response) => {
   try {
-    const result = await virtualAccountService.generateVirtualAccountForUser(req.userId!);
+    const { nin, bvn } = req.body;
+
+    if (!nin && !bvn) {
+      return res.status(400).json(formatErrorResponse(400, 'NIN or BVN is required for virtual account generation. PayVessel requires identity verification.'));
+    }
+
+    if (nin && nin.length !== 11) {
+      return res.status(400).json(formatErrorResponse(400, 'NIN must be exactly 11 digits'));
+    }
+
+    if (bvn && bvn.length !== 11) {
+      return res.status(400).json(formatErrorResponse(400, 'BVN must be exactly 11 digits'));
+    }
+
+    const result = await virtualAccountService.generateVirtualAccountForUser(req.userId!, nin, bvn);
     
     if (!result.success) {
       return res.status(400).json(formatErrorResponse(400, result.message));
     }
 
-    logger.info('Virtual account generated', { userId: req.userId, accountNumber: result.account?.accountNumber });
+    logger.info('Virtual account generated via PayVessel', { userId: req.userId, accountNumber: result.account?.accountNumber });
     
     res.json(formatResponse('success', 200, result.message, {
       account: result.account,
