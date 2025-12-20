@@ -92,18 +92,26 @@ router.put('/pricing/:id', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { price, isActive, description } = req.body;
 
-    const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
-    if (isNaN(numericPrice) || numericPrice < 0) {
-      return res.status(400).json(formatErrorResponse(400, 'Invalid price value'));
+    const updateData: any = { updatedAt: new Date() };
+
+    if (price !== undefined) {
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+      if (isNaN(numericPrice) || numericPrice < 0) {
+        return res.status(400).json(formatErrorResponse(400, 'Invalid price value'));
+      }
+      updateData.price = numericPrice.toFixed(2);
+    }
+
+    if (isActive !== undefined) {
+      updateData.isActive = isActive;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description;
     }
 
     const [updated] = await db.update(servicePricing)
-      .set({ 
-        price: numericPrice.toFixed(2),
-        isActive,
-        description,
-        updatedAt: new Date()
-      })
+      .set(updateData)
       .where(eq(servicePricing.id, id))
       .returning();
 
@@ -150,6 +158,26 @@ router.post('/pricing', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Add pricing error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to add pricing'));
+  }
+});
+
+router.delete('/pricing/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [deleted] = await db.delete(servicePricing)
+      .where(eq(servicePricing.id, id))
+      .returning();
+
+    if (!deleted) {
+      return res.status(404).json(formatErrorResponse(404, 'Pricing not found'));
+    }
+
+    logger.info('Pricing deleted', { pricingId: id, adminId: req.userId });
+    res.json(formatResponse('success', 200, 'Pricing deleted', deleted));
+  } catch (error: any) {
+    logger.error('Delete pricing error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to delete pricing'));
   }
 });
 
