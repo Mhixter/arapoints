@@ -22,7 +22,9 @@ import {
   adminUsers,
   adminRoles,
   identityAgents,
-  identityServiceRequests
+  identityServiceRequests,
+  educationAgents,
+  educationServiceRequests
 } from '../../db/schema';
 import bcrypt from 'bcryptjs';
 import { eq, desc, count, sql } from 'drizzle-orm';
@@ -1405,20 +1407,42 @@ router.get('/users/search', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/admin-users', async (req: Request, res: Response) => {
+  try {
+    const adminUsersList = await db.select({
+      id: adminUsers.id,
+      name: adminUsers.name,
+      email: adminUsers.email,
+      isActive: adminUsers.isActive,
+      createdAt: adminUsers.createdAt,
+    })
+      .from(adminUsers)
+      .where(eq(adminUsers.isActive, true))
+      .orderBy(desc(adminUsers.createdAt));
+
+    res.json(formatResponse('success', 200, 'Admin users retrieved', { adminUsers: adminUsersList }));
+  } catch (error: any) {
+    logger.error('Get admin users error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get admin users'));
+  }
+});
+
 router.get('/identity-agents', async (req: Request, res: Response) => {
   try {
     const agents = await db.select({
       id: identityAgents.id,
-      userId: identityAgents.userId,
+      adminUserId: identityAgents.adminUserId,
+      employeeId: identityAgents.employeeId,
       specializations: identityAgents.specializations,
-      isActive: identityAgents.isActive,
+      isAvailable: identityAgents.isAvailable,
+      currentActiveRequests: identityAgents.currentActiveRequests,
+      totalCompletedRequests: identityAgents.totalCompletedRequests,
       createdAt: identityAgents.createdAt,
-      userName: users.name,
-      userEmail: users.email,
-      userPhone: users.phone,
+      adminName: adminUsers.name,
+      adminEmail: adminUsers.email,
     })
       .from(identityAgents)
-      .leftJoin(users, eq(identityAgents.userId, users.id))
+      .leftJoin(adminUsers, eq(identityAgents.adminUserId, adminUsers.id))
       .orderBy(desc(identityAgents.createdAt));
 
     res.json(formatResponse('success', 200, 'Identity agents retrieved', { agents }));
@@ -1430,48 +1454,46 @@ router.get('/identity-agents', async (req: Request, res: Response) => {
 
 router.post('/identity-agents', async (req: Request, res: Response) => {
   try {
-    const { userId, specializations } = req.body;
+    const { adminUserId, employeeId, specializations } = req.body;
 
-    if (!userId) {
-      return res.status(400).json(formatErrorResponse(400, 'User ID is required'));
+    if (!adminUserId) {
+      return res.status(400).json(formatErrorResponse(400, 'Admin User ID is required'));
     }
 
     const [existingAgent] = await db.select()
       .from(identityAgents)
-      .where(eq(identityAgents.userId, userId))
+      .where(eq(identityAgents.adminUserId, adminUserId))
       .limit(1);
 
     if (existingAgent) {
-      return res.status(409).json(formatErrorResponse(409, 'User is already an identity agent'));
+      return res.status(409).json(formatErrorResponse(409, 'Admin user is already an identity agent'));
     }
 
-    const [user] = await db.select()
-      .from(users)
-      .where(eq(users.id, userId))
+    const [adminUser] = await db.select()
+      .from(adminUsers)
+      .where(eq(adminUsers.id, adminUserId))
       .limit(1);
 
-    if (!user) {
-      return res.status(404).json(formatErrorResponse(404, 'User not found'));
+    if (!adminUser) {
+      return res.status(404).json(formatErrorResponse(404, 'Admin user not found'));
     }
 
     const [agent] = await db.insert(identityAgents).values({
-      userId,
-      name: user.name || 'Agent',
-      email: user.email,
-      phone: user.phone,
-      specializations: specializations ? JSON.parse(specializations) : ['nin_validation', 'ipe_clearance', 'nin_personalization'],
-      isActive: true,
+      adminUserId,
+      employeeId: employeeId || null,
+      specializations: specializations || ['nin_validation', 'ipe_clearance', 'nin_personalization'],
+      isAvailable: true,
     }).returning();
 
-    logger.info('Identity agent created', { agentId: agent.id, userId, createdBy: req.userId });
+    logger.info('Identity agent created', { agentId: agent.id, adminUserId, createdBy: req.userId });
 
     res.status(201).json(formatResponse('success', 201, 'Identity agent created', {
       agent: {
         id: agent.id,
-        userId,
-        userName: user.name,
-        userEmail: user.email,
-        isActive: agent.isActive,
+        adminUserId,
+        adminName: adminUser.name,
+        adminEmail: adminUser.email,
+        isAvailable: agent.isAvailable,
       },
     }));
   } catch (error: any) {
@@ -1483,7 +1505,7 @@ router.post('/identity-agents', async (req: Request, res: Response) => {
 router.put('/identity-agents/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { specializations, isActive } = req.body;
+    const { specializations, isAvailable, employeeId } = req.body;
 
     const [agent] = await db.select()
       .from(identityAgents)
@@ -1496,7 +1518,8 @@ router.put('/identity-agents/:id', async (req: Request, res: Response) => {
 
     const updateData: any = { updatedAt: new Date() };
     if (specializations !== undefined) updateData.specializations = specializations;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (employeeId !== undefined) updateData.employeeId = employeeId;
 
     await db.update(identityAgents)
       .set(updateData)
@@ -1567,6 +1590,175 @@ router.get('/identity-requests', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Get identity requests error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to get identity requests'));
+  }
+});
+
+router.get('/education-agents', async (req: Request, res: Response) => {
+  try {
+    const agents = await db.select({
+      id: educationAgents.id,
+      adminUserId: educationAgents.adminUserId,
+      employeeId: educationAgents.employeeId,
+      specializations: educationAgents.specializations,
+      isAvailable: educationAgents.isAvailable,
+      currentActiveRequests: educationAgents.currentActiveRequests,
+      totalCompletedRequests: educationAgents.totalCompletedRequests,
+      createdAt: educationAgents.createdAt,
+      adminName: adminUsers.name,
+      adminEmail: adminUsers.email,
+    })
+      .from(educationAgents)
+      .leftJoin(adminUsers, eq(educationAgents.adminUserId, adminUsers.id))
+      .orderBy(desc(educationAgents.createdAt));
+
+    res.json(formatResponse('success', 200, 'Education agents retrieved', { agents }));
+  } catch (error: any) {
+    logger.error('Get education agents error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get education agents'));
+  }
+});
+
+router.post('/education-agents', async (req: Request, res: Response) => {
+  try {
+    const { adminUserId, employeeId, specializations } = req.body;
+
+    if (!adminUserId) {
+      return res.status(400).json(formatErrorResponse(400, 'Admin User ID is required'));
+    }
+
+    const [existingAgent] = await db.select()
+      .from(educationAgents)
+      .where(eq(educationAgents.adminUserId, adminUserId))
+      .limit(1);
+
+    if (existingAgent) {
+      return res.status(409).json(formatErrorResponse(409, 'Admin user is already an education agent'));
+    }
+
+    const [adminUser] = await db.select()
+      .from(adminUsers)
+      .where(eq(adminUsers.id, adminUserId))
+      .limit(1);
+
+    if (!adminUser) {
+      return res.status(404).json(formatErrorResponse(404, 'Admin user not found'));
+    }
+
+    const [agent] = await db.insert(educationAgents).values({
+      adminUserId,
+      employeeId: employeeId || null,
+      specializations: specializations || ['jamb', 'waec', 'neco'],
+      isAvailable: true,
+    }).returning();
+
+    logger.info('Education agent created', { agentId: agent.id, adminUserId, createdBy: req.userId });
+
+    res.status(201).json(formatResponse('success', 201, 'Education agent created', {
+      agent: {
+        id: agent.id,
+        adminUserId,
+        adminName: adminUser.name,
+        adminEmail: adminUser.email,
+        isAvailable: agent.isAvailable,
+      },
+    }));
+  } catch (error: any) {
+    logger.error('Create education agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create education agent'));
+  }
+});
+
+router.put('/education-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { specializations, isAvailable, employeeId } = req.body;
+
+    const [agent] = await db.select()
+      .from(educationAgents)
+      .where(eq(educationAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'Education agent not found'));
+    }
+
+    const updateData: any = { updatedAt: new Date() };
+    if (specializations !== undefined) updateData.specializations = specializations;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (employeeId !== undefined) updateData.employeeId = employeeId;
+
+    await db.update(educationAgents)
+      .set(updateData)
+      .where(eq(educationAgents.id, id));
+
+    logger.info('Education agent updated', { agentId: id, updatedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'Education agent updated'));
+  } catch (error: any) {
+    logger.error('Update education agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update education agent'));
+  }
+});
+
+router.delete('/education-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [agent] = await db.select()
+      .from(educationAgents)
+      .where(eq(educationAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'Education agent not found'));
+    }
+
+    await db.delete(educationAgents).where(eq(educationAgents.id, id));
+
+    logger.info('Education agent deleted', { agentId: id, deletedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'Education agent deleted'));
+  } catch (error: any) {
+    logger.error('Delete education agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to delete education agent'));
+  }
+});
+
+router.get('/education-requests', async (req: Request, res: Response) => {
+  try {
+    const { limit = '50', status } = req.query;
+
+    let query = db.select({
+      id: educationServiceRequests.id,
+      trackingId: educationServiceRequests.trackingId,
+      serviceType: educationServiceRequests.serviceType,
+      examYear: educationServiceRequests.examYear,
+      registrationNumber: educationServiceRequests.registrationNumber,
+      candidateName: educationServiceRequests.candidateName,
+      status: educationServiceRequests.status,
+      fee: educationServiceRequests.fee,
+      isPaid: educationServiceRequests.isPaid,
+      createdAt: educationServiceRequests.createdAt,
+      completedAt: educationServiceRequests.completedAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+      .from(educationServiceRequests)
+      .leftJoin(users, eq(educationServiceRequests.userId, users.id))
+      .orderBy(desc(educationServiceRequests.createdAt))
+      .limit(parseInt(limit as string) || 50);
+
+    let requests;
+    if (status && status !== 'all') {
+      requests = await query.where(eq(educationServiceRequests.status, status as string));
+    } else {
+      requests = await query;
+    }
+
+    res.json(formatResponse('success', 200, 'Education requests retrieved', { requests }));
+  } catch (error: any) {
+    logger.error('Get education requests error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get education requests'));
   }
 });
 

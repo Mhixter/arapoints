@@ -7,16 +7,16 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { IdCard, Loader2, UserPlus, Trash2, Users, FileText, RefreshCw, CheckCircle, Clock, XCircle } from "lucide-react";
+import { GraduationCap, Loader2, UserPlus, Trash2, Users, FileText, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const getAdminToken = () => localStorage.getItem('accessToken');
 
 const SERVICE_LABELS: Record<string, string> = {
-  'nin_validation': 'NIN Validation',
-  'ipe_clearance': 'IPE Clearance',
-  'nin_personalization': 'NIN Personalization',
+  'jamb': 'JAMB Result',
+  'waec': 'WAEC Result',
+  'neco': 'NECO Result',
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   completed: { label: 'Completed', color: 'bg-green-100 text-green-700' },
 };
 
-export default function AdminIdentityAgents() {
+export default function AdminEducationAgents() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [agents, setAgents] = useState<any[]>([]);
@@ -43,7 +43,7 @@ export default function AdminIdentityAgents() {
   const fetchAgents = async () => {
     try {
       const token = getAdminToken();
-      const response = await fetch('/api/admin/identity-agents', {
+      const response = await fetch('/api/admin/education-agents', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -58,7 +58,7 @@ export default function AdminIdentityAgents() {
   const fetchRequests = async () => {
     try {
       const token = getAdminToken();
-      const response = await fetch('/api/admin/identity-requests?limit=50', {
+      const response = await fetch('/api/admin/education-requests?limit=50', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -93,14 +93,14 @@ export default function AdminIdentityAgents() {
     setLoading(true);
     try {
       const token = getAdminToken();
-      const response = await fetch('/api/admin/identity-agents', {
+      const response = await fetch('/api/admin/education-agents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(agentForm)
       });
       const data = await response.json();
       if (data.status === 'success') {
-        toast({ title: "Success", description: "Identity agent created successfully" });
+        toast({ title: "Success", description: "Education agent created successfully" });
         setShowAgentModal(false);
         setAgentForm({ adminUserId: '', employeeId: '' });
         fetchAgents();
@@ -117,7 +117,7 @@ export default function AdminIdentityAgents() {
   const handleToggleAgent = async (agentId: string, isAvailable: boolean) => {
     try {
       const token = getAdminToken();
-      const response = await fetch(`/api/admin/identity-agents/${agentId}`, {
+      const response = await fetch(`/api/admin/education-agents/${agentId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ isAvailable: !isAvailable })
@@ -138,7 +138,7 @@ export default function AdminIdentityAgents() {
     if (!confirm('Are you sure you want to delete this agent?')) return;
     try {
       const token = getAdminToken();
-      const response = await fetch(`/api/admin/identity-agents/${agentId}`, {
+      const response = await fetch(`/api/admin/education-agents/${agentId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -167,8 +167,8 @@ export default function AdminIdentityAgents() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Identity Agent Management</h2>
-          <p className="text-muted-foreground">Manage agents for manual identity services (NIN Validation, IPE Clearance, Personalization)</p>
+          <h2 className="text-2xl font-bold">Education Agent Management</h2>
+          <p className="text-muted-foreground">Manage agents for education verification services (JAMB, WAEC, NECO)</p>
         </div>
       </div>
 
@@ -189,8 +189,8 @@ export default function AdminIdentityAgents() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Identity Agents</CardTitle>
-                  <CardDescription>Admin users authorized to process manual identity service requests</CardDescription>
+                  <CardTitle>Education Agents</CardTitle>
+                  <CardDescription>Admin users authorized to process education verification requests</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={fetchAgents}>
@@ -207,9 +207,9 @@ export default function AdminIdentityAgents() {
             <CardContent>
               {agents.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  <IdCard className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No identity agents yet</p>
-                  <p className="text-sm">Create an agent to start processing manual identity requests</p>
+                  <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No education agents yet</p>
+                  <p className="text-sm">Create an agent to start processing education verification requests</p>
                 </div>
               ) : (
                 <Table>
@@ -265,8 +265,8 @@ export default function AdminIdentityAgents() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Identity Service Requests</CardTitle>
-                  <CardDescription>All manual identity service requests from users</CardDescription>
+                  <CardTitle>Education Verification Requests</CardTitle>
+                  <CardDescription>All education verification requests from users</CardDescription>
                 </div>
                 <Button variant="outline" size="sm" onClick={fetchRequests}>
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -287,6 +287,7 @@ export default function AdminIdentityAgents() {
                       <TableHead>Tracking ID</TableHead>
                       <TableHead>Service</TableHead>
                       <TableHead>Customer</TableHead>
+                      <TableHead>Candidate</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Fee</TableHead>
                       <TableHead>Date</TableHead>
@@ -301,6 +302,12 @@ export default function AdminIdentityAgents() {
                           <div>
                             <p className="font-medium">{request.userName || 'N/A'}</p>
                             <p className="text-sm text-muted-foreground">{request.userEmail}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{request.candidateName || 'N/A'}</p>
+                            <p className="text-sm text-muted-foreground">{request.examYear} - {request.registrationNumber}</p>
                           </div>
                         </TableCell>
                         <TableCell>{getStatusBadge(request.status)}</TableCell>
@@ -319,8 +326,8 @@ export default function AdminIdentityAgents() {
       <Dialog open={showAgentModal} onOpenChange={setShowAgentModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Identity Agent</DialogTitle>
-            <DialogDescription>Select an admin user to grant identity agent access</DialogDescription>
+            <DialogTitle>Add Education Agent</DialogTitle>
+            <DialogDescription>Select an admin user to grant education agent access</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">

@@ -31,10 +31,13 @@ import CableServices from "@/pages/dashboard/CableServices";
 import CACServices from "@/pages/dashboard/CACServices";
 import FundWallet from "@/pages/dashboard/FundWallet";
 
-// CAC Agent Imports
+// Agent Imports
 import CACAgentLogin from "@/pages/agent/CACAgentLogin";
 import CACAgentDashboard from "@/pages/agent/CACAgentDashboard";
+import IdentityAgentLogin from "@/pages/agent/IdentityAgentLogin";
 import IdentityAgentDashboard from "@/pages/agent/IdentityAgentDashboard";
+import EducationAgentLogin from "@/pages/agent/EducationAgentLogin";
+import EducationAgentDashboard from "@/pages/agent/EducationAgentDashboard";
 import BuyPINs from "@/pages/dashboard/BuyPINs";
 import Profile from "@/pages/dashboard/Profile";
 import Settings from "@/pages/dashboard/Settings";
@@ -55,15 +58,19 @@ import AdminRoles from "@/pages/admin/AdminRoles";
 import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminCACServices from "@/pages/admin/AdminCACServices";
 import AdminIdentityAgents from "@/pages/admin/AdminIdentityAgents";
+import AdminEducationAgents from "@/pages/admin/AdminEducationAgents";
 import AdminCRUDLayout from "@/components/layout/AdminCRUDLayout";
 
 function Router() {
   return (
     <Switch>
-      {/* CAC Agent Routes - outside MainLayout */}
+      {/* Agent Routes - outside MainLayout */}
       <Route path="/agent/login" component={CACAgentLogin} />
       <Route path="/agent/dashboard" component={CACAgentDashboard} />
-      <Route path="/agent/identity" component={IdentityAgentDashboard} />
+      <Route path="/agent/identity" component={IdentityAgentLogin} />
+      <Route path="/agent/identity/dashboard" component={IdentityAgentDashboard} />
+      <Route path="/agent/education" component={EducationAgentLogin} />
+      <Route path="/agent/education/dashboard" component={EducationAgentDashboard} />
       
       {/* Admin Routes - outside MainLayout */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -125,6 +132,11 @@ function Router() {
       <Route path="/admin/identity-agents">
         <AdminCRUDLayout>
           <AdminIdentityAgents />
+        </AdminCRUDLayout>
+      </Route>
+      <Route path="/admin/education-agents">
+        <AdminCRUDLayout>
+          <AdminEducationAgents />
         </AdminCRUDLayout>
       </Route>
       

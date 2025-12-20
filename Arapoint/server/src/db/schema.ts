@@ -385,20 +385,54 @@ export const cacRequestMessages = pgTable('cac_request_messages', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-// Identity Agents (for manual NIN services)
+// Identity Agents (for manual NIN services) - uses adminUsers like CAC agents
 export const identityAgents = pgTable('identity_agents', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
-  userId: uuid('user_id').references(() => users.id).unique().notNull(),
+  adminUserId: uuid('admin_user_id').references(() => adminUsers.id).unique(),
   employeeId: varchar('employee_id', { length: 50 }),
-  name: varchar('name', { length: 255 }).notNull(),
-  email: varchar('email', { length: 255 }).notNull(),
-  phone: varchar('phone', { length: 20 }),
   specializations: jsonb('specializations').default('["nin_validation", "ipe_clearance", "nin_personalization"]'),
   maxActiveRequests: integer('max_active_requests').default(20),
   currentActiveRequests: integer('current_active_requests').default(0),
   totalCompletedRequests: integer('total_completed_requests').default(0),
   isAvailable: boolean('is_available').default(true),
-  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Education Agents (for JAMB, WAEC, NECO verification)
+export const educationAgents = pgTable('education_agents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  adminUserId: uuid('admin_user_id').references(() => adminUsers.id).unique(),
+  employeeId: varchar('employee_id', { length: 50 }),
+  specializations: jsonb('specializations').default('["jamb", "waec", "neco"]'),
+  maxActiveRequests: integer('max_active_requests').default(20),
+  currentActiveRequests: integer('current_active_requests').default(0),
+  totalCompletedRequests: integer('total_completed_requests').default(0),
+  isAvailable: boolean('is_available').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Education Service Requests
+export const educationServiceRequests = pgTable('education_service_requests', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  trackingId: varchar('tracking_id', { length: 20 }).unique().notNull(),
+  serviceType: varchar('service_type', { length: 50 }).notNull(),
+  examYear: varchar('exam_year', { length: 10 }),
+  registrationNumber: varchar('registration_number', { length: 50 }),
+  candidateName: varchar('candidate_name', { length: 255 }),
+  status: varchar('status', { length: 30 }).default('pending').notNull(),
+  assignedAgentId: uuid('assigned_agent_id').references(() => educationAgents.id),
+  assignedAt: timestamp('assigned_at'),
+  fee: decimal('fee', { precision: 10, scale: 2 }).notNull(),
+  isPaid: boolean('is_paid').default(false),
+  paymentReference: varchar('payment_reference', { length: 100 }),
+  resultData: jsonb('result_data'),
+  resultUrl: varchar('result_url', { length: 500 }),
+  customerNotes: text('customer_notes'),
+  agentNotes: text('agent_notes'),
+  completedAt: timestamp('completed_at'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

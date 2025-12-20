@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { IdCard, Loader2, Clock, CheckCircle2, User, LogOut, FileText, RefreshCw, Eye } from "lucide-react";
+import { GraduationCap, Loader2, Clock, CheckCircle2, User, LogOut, FileText, RefreshCw, Eye } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -17,9 +17,9 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Completed', color: 'bg-green-100 text-green-700' },
 ];
 
-const getAgentToken = () => localStorage.getItem('identityAgentToken');
+const getAgentToken = () => localStorage.getItem('educationAgentToken');
 
-export default function IdentityAgentDashboard() {
+export default function EducationAgentDashboard() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [loading, setLoading] = useState(false);
@@ -30,12 +30,12 @@ export default function IdentityAgentDashboard() {
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showStatusUpdate, setShowStatusUpdate] = useState(false);
-  const [updateData, setUpdateData] = useState({ status: '', agentNotes: '', slipUrl: '' });
+  const [updateData, setUpdateData] = useState({ status: '', agentNotes: '', resultUrl: '' });
 
   useEffect(() => {
     const token = getAgentToken();
     if (!token) {
-      setLocation('/agent/identity');
+      setLocation('/agent/education');
       return;
     }
     fetchProfile();
@@ -46,7 +46,7 @@ export default function IdentityAgentDashboard() {
   const fetchProfile = async () => {
     try {
       const token = getAgentToken();
-      const response = await fetch('/api/identity-agent/me', {
+      const response = await fetch('/api/education-agent/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -63,7 +63,7 @@ export default function IdentityAgentDashboard() {
   const fetchStats = async () => {
     try {
       const token = getAgentToken();
-      const response = await fetch('/api/identity-agent/stats', {
+      const response = await fetch('/api/education-agent/stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -79,7 +79,7 @@ export default function IdentityAgentDashboard() {
     setLoading(true);
     try {
       const token = getAgentToken();
-      const response = await fetch(`/api/identity-agent/requests?status=${filter}`, {
+      const response = await fetch(`/api/education-agent/requests?status=${filter}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -98,10 +98,10 @@ export default function IdentityAgentDashboard() {
   }, [filter]);
 
   const handleLogout = () => {
-    localStorage.removeItem('identityAgentToken');
-    localStorage.removeItem('identityAgentInfo');
+    localStorage.removeItem('educationAgentToken');
+    localStorage.removeItem('educationAgentInfo');
     toast({ title: "Logged out", description: "You have been logged out" });
-    setLocation('/agent/identity');
+    setLocation('/agent/education');
   };
 
   const handleUpdateStatus = async () => {
@@ -110,7 +110,7 @@ export default function IdentityAgentDashboard() {
     setLoading(true);
     try {
       const token = getAgentToken();
-      const response = await fetch(`/api/identity-agent/requests/${selectedRequest.id}/status`, {
+      const response = await fetch(`/api/education-agent/requests/${selectedRequest.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(updateData)
@@ -122,7 +122,7 @@ export default function IdentityAgentDashboard() {
         fetchStats();
         setShowStatusUpdate(false);
         setSelectedRequest(null);
-        setUpdateData({ status: '', agentNotes: '', slipUrl: '' });
+        setUpdateData({ status: '', agentNotes: '', resultUrl: '' });
       } else {
         toast({ title: "Failed", description: data.message, variant: "destructive" });
       }
@@ -140,11 +140,11 @@ export default function IdentityAgentDashboard() {
 
   const getServiceTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      'nin_validation': 'NIN Validation',
-      'ipe_clearance': 'IPE Clearance',
-      'nin_personalization': 'NIN Personalization'
+      'jamb': 'JAMB Result',
+      'waec': 'WAEC Result',
+      'neco': 'NECO Result'
     };
-    return labels[type] || type;
+    return labels[type] || type.toUpperCase();
   };
 
   return (
@@ -152,11 +152,11 @@ export default function IdentityAgentDashboard() {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-              <IdCard className="h-5 w-5 text-blue-600" />
+            <div className="h-10 w-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <GraduationCap className="h-5 w-5 text-green-600" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold">Identity Agent Dashboard</h1>
+              <h1 className="text-lg font-semibold">Education Agent Dashboard</h1>
               <p className="text-sm text-muted-foreground">{agent?.name} ({agent?.email})</p>
             </div>
           </div>
@@ -211,8 +211,8 @@ export default function IdentityAgentDashboard() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <User className="h-6 w-6 text-blue-600" />
+                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <User className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{Number(stats.total) || 0}</p>
@@ -226,7 +226,7 @@ export default function IdentityAgentDashboard() {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Identity Service Requests</CardTitle>
+              <CardTitle>Education Verification Requests</CardTitle>
               <div className="flex gap-2">
                 <Select value={filter} onValueChange={setFilter}>
                   <SelectTrigger className="w-40">
@@ -270,7 +270,9 @@ export default function IdentityAgentDashboard() {
                         <p className="text-sm">
                           <strong>Customer:</strong> {request.userName || 'N/A'} ({request.userEmail || 'N/A'})
                         </p>
-                        {request.nin && <p className="text-sm"><strong>NIN:</strong> {request.nin}</p>}
+                        {request.candidateName && <p className="text-sm"><strong>Candidate:</strong> {request.candidateName}</p>}
+                        {request.examYear && <p className="text-sm"><strong>Year:</strong> {request.examYear}</p>}
+                        {request.registrationNumber && <p className="text-sm"><strong>Reg No:</strong> {request.registrationNumber}</p>}
                         <p className="text-xs text-muted-foreground">
                           {new Date(request.createdAt).toLocaleDateString()}
                         </p>
@@ -283,7 +285,7 @@ export default function IdentityAgentDashboard() {
                         {request.status !== 'completed' && (
                           <Button size="sm" onClick={() => { 
                             setSelectedRequest(request); 
-                            setUpdateData({ status: request.status, agentNotes: request.agentNotes || '', slipUrl: request.slipUrl || '' });
+                            setUpdateData({ status: request.status, agentNotes: request.agentNotes || '', resultUrl: request.resultUrl || '' });
                             setShowStatusUpdate(true); 
                           }}>
                             Update
@@ -313,23 +315,18 @@ export default function IdentityAgentDashboard() {
                 <div><strong>Email:</strong> {selectedRequest.userEmail}</div>
                 <div><strong>Phone:</strong> {selectedRequest.userPhone || 'N/A'}</div>
                 <div><strong>Fee:</strong> {selectedRequest.fee}</div>
-                {selectedRequest.nin && <div><strong>NIN:</strong> {selectedRequest.nin}</div>}
-                {selectedRequest.newTrackingId && <div><strong>New Tracking ID:</strong> {selectedRequest.newTrackingId}</div>}
+                {selectedRequest.candidateName && <div><strong>Candidate Name:</strong> {selectedRequest.candidateName}</div>}
+                {selectedRequest.examYear && <div><strong>Exam Year:</strong> {selectedRequest.examYear}</div>}
+                {selectedRequest.registrationNumber && <div><strong>Reg Number:</strong> {selectedRequest.registrationNumber}</div>}
               </div>
-              {selectedRequest.updateFields && (
-                <div>
-                  <strong>Update Fields:</strong>
-                  <pre className="mt-2 p-2 bg-gray-100 rounded text-sm">{JSON.stringify(selectedRequest.updateFields, null, 2)}</pre>
-                </div>
-              )}
               {selectedRequest.customerNotes && (
                 <div><strong>Customer Notes:</strong> {selectedRequest.customerNotes}</div>
               )}
               {selectedRequest.agentNotes && (
                 <div><strong>Agent Notes:</strong> {selectedRequest.agentNotes}</div>
               )}
-              {selectedRequest.slipUrl && (
-                <div><strong>Slip:</strong> <a href={selectedRequest.slipUrl} target="_blank" className="text-blue-600 underline">View Slip</a></div>
+              {selectedRequest.resultUrl && (
+                <div><strong>Result:</strong> <a href={selectedRequest.resultUrl} target="_blank" className="text-green-600 underline">View Result</a></div>
               )}
             </div>
           )}
@@ -368,11 +365,11 @@ export default function IdentityAgentDashboard() {
 
             {updateData.status === 'completed' && (
               <div className="space-y-2">
-                <Label>Slip/Result URL</Label>
+                <Label>Result URL</Label>
                 <Input 
-                  value={updateData.slipUrl}
-                  onChange={(e) => setUpdateData(prev => ({ ...prev, slipUrl: e.target.value }))}
-                  placeholder="Enter URL to slip or result document..."
+                  value={updateData.resultUrl}
+                  onChange={(e) => setUpdateData(prev => ({ ...prev, resultUrl: e.target.value }))}
+                  placeholder="Enter URL to result document..."
                 />
               </div>
             )}
