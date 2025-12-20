@@ -134,4 +134,58 @@ router.get('/history', async (req: Request, res: Response) => {
   }
 });
 
+const AIRTIME_TO_CASH_RATES: Record<string, number> = {
+  'mtn': 80,
+  'airtel': 75,
+  'glo': 70,
+  '9mobile': 70,
+};
+
+router.post('/to-cash', async (req: Request, res: Response) => {
+  try {
+    const { network, amount, phone, cashValue } = req.body;
+
+    if (!network || !amount || !phone) {
+      return res.status(400).json(formatErrorResponse(400, 'Network, amount and phone are required'));
+    }
+
+    if (amount < 100) {
+      return res.status(400).json(formatErrorResponse(400, 'Minimum amount is ₦100'));
+    }
+
+    const rate = AIRTIME_TO_CASH_RATES[network.toLowerCase()] || 70;
+    const calculatedCashValue = amount * rate / 100;
+
+    await db.insert(airtimeServices).values({
+      userId: req.userId!,
+      network: network,
+      phoneNumber: phone,
+      amount: amount.toString(),
+      reference: `A2C-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      status: 'pending',
+      transactionId: null,
+    });
+
+    logger.info('Airtime to cash request submitted', { 
+      userId: req.userId, 
+      network, 
+      amount, 
+      cashValue: calculatedCashValue,
+      phone: phone.substring(0, 4) + '***' 
+    });
+
+    res.json(formatResponse('success', 200, 'Airtime to cash request submitted', {
+      network,
+      amount,
+      cashValue: calculatedCashValue,
+      rate,
+      status: 'pending',
+      message: 'Transfer airtime to the number that will be sent to you. Your wallet will be credited within 1-30 minutes.',
+    }));
+  } catch (error: any) {
+    logger.error('Airtime to cash error', { error: error.message, userId: req.userId });
+    res.status(500).json(formatErrorResponse(500, 'Failed to submit request'));
+  }
+});
+
 export default router;

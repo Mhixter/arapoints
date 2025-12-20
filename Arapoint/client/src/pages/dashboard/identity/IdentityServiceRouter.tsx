@@ -3,37 +3,55 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Search, CheckCircle2, Download, Printer, Clock, FileText, AlertCircle } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Loader2, Search, CheckCircle2, Download, Printer, Clock, FileText, AlertCircle, AlertTriangle } from "lucide-react";
 import { SERVICES } from "../IdentityVerification";
 import { useState, useRef } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import slipInfo from '@assets/image_1764211401623.png';
 import slipRegular from '@assets/image_1764211451522.png';
 import slipStandard from '@assets/image_1764211490940.png';
 import slipPremium from '@assets/image_1764211520708.png';
 
 const SLIP_TYPES = [
-  { id: "information", name: "Information Slip", price: 200, desc: "Verified NIN Details", image: slipInfo },
-  { id: "regular", name: "Regular Slip", price: 250, desc: "National Identification Number Slip (NINS)", image: slipRegular },
-  { id: "standard", name: "Standard Slip", price: 300, desc: "National Identification Card (NGA)", image: slipStandard },
-  { id: "premium", name: "Premium Slip", price: 300, desc: "Digital NIN Slip", image: slipPremium },
+  { id: "information", name: "Information Slip", price: 200, image: slipInfo },
+  { id: "regular", name: "Regular Slip", price: 250, image: slipRegular },
+  { id: "standard", name: "Standard Slip", price: 300, image: slipStandard },
+  { id: "premium", name: "Premium Slip", price: 300, image: slipPremium },
 ];
 
-const SERVICE_PRICES: Record<string, number> = {
-  "nin-verification": 150,
-  "nin-phone": 200,
-  "ipe-clearance": 500,
-  "validation": 200,
-  "personalization": 3000,
-  "birth-attestation": 5000,
-};
+const IPE_STATUS_OPTIONS = [
+  { id: "in_processing_error", name: "InProcessing Error", price: 1000 },
+  { id: "still_being_process", name: "Still Being Process", price: 1000 },
+  { id: "new_enrollment", name: "New Enrollment For Tracking ID", price: 1000 },
+  { id: "invalid_tracking", name: "Invalid Tracking ID", price: 1000 },
+];
+
+const VALIDATION_OPTIONS = [
+  { id: "no_record_found", name: "No Record Found", price: 1000 },
+  { id: "update_record", name: "Update Record", price: 1000 },
+  { id: "validate_modification", name: "Validate Modification", price: 1000 },
+  { id: "vnin_validation", name: "V-NIN Validation", price: 1000 },
+  { id: "photograph_error", name: "Photograph Error", price: 1000 },
+  { id: "bypass_nin", name: "Bypass NIN", price: 1000 },
+];
+
+const IPE_SLIP_TYPES = [
+  { id: "regular", name: "Regular Slip", price: 0, image: slipRegular },
+  { id: "premium", name: "Premium Slip", price: 150, image: slipPremium },
+];
+
+const VALIDATION_SLIP_TYPES = [
+  { id: "no_slip", name: "No Slip", price: 0, image: null },
+  { id: "regular", name: "Regular Slip", price: 150, image: slipRegular },
+];
 
 export default function IdentityServiceRouter() {
   const [match, params] = useRoute("/dashboard/identity/:service");
   const serviceId = params?.service;
   const service = SERVICES.find(s => s.id === serviceId);
-  const price = SERVICE_PRICES[serviceId || ''] || 500;
 
   if (!service) {
     return <div>Service not found</div>;
@@ -56,17 +74,19 @@ export default function IdentityServiceRouter() {
         </div>
       </div>
 
-      <ServiceContent service={service} price={price} />
+      <ServiceContent service={service} />
     </div>
   );
 }
 
-function ServiceContent({ service, price }: { service: any, price: number }) {
+function ServiceContent({ service }: { service: any }) {
   const [isLoading, setIsLoading] = useState(false);
   const [requestStatus, setRequestStatus] = useState<"idle" | "pending" | "completed" | "error">("idle");
   const [result, setResult] = useState<any>(null);
   const [slipHtml, setSlipHtml] = useState<string | null>(null);
-  const [selectedSlip, setSelectedSlip] = useState("standard");
+  const [selectedSlip, setSelectedSlip] = useState("information");
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [consentChecked, setConsentChecked] = useState(false);
   const [error, setError] = useState("");
   const { toast } = useToast();
   const slipContainerRef = useRef<HTMLDivElement>(null);
@@ -75,11 +95,27 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
     return localStorage.getItem('accessToken');
   };
 
+  const getSlipPrice = () => {
+    const slip = SLIP_TYPES.find(s => s.id === selectedSlip);
+    return slip?.price || 200;
+  };
+
   const handleSearch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    if (!consentChecked) {
+      toast({
+        title: "Consent Required",
+        description: "Please check the consent box to proceed",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const inputValue = formData.get("input") as string;
     const phoneValue = formData.get("phone") as string;
+    const trackingId = formData.get("trackingId") as string;
 
     setError("");
     setIsLoading(true);
@@ -100,14 +136,31 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
         body = { nin: inputValue, slipType: selectedSlip };
       } else if (service.id === "nin-phone") {
         endpoint = '/api/identity/nin-phone';
-        body = { nin: inputValue, phone: phoneValue, slipType: selectedSlip };
+        body = { phone: inputValue, slipType: selectedSlip };
+      } else if (service.id === "nin-tracking") {
+        endpoint = '/api/identity/nin-tracking';
+        body = { trackingId: inputValue, slipType: selectedSlip };
       } else if (service.id === "ipe-clearance") {
-        endpoint = '/api/identity/lost-nin';
-        body = { phone: phoneValue || inputValue, enrollmentId: inputValue };
+        endpoint = '/api/identity/ipe-clearance';
+        body = { 
+          trackingId: trackingId || inputValue, 
+          statusType: selectedStatus,
+          slipType: selectedSlip 
+        };
         setIsLoading(false);
         setRequestStatus("pending");
         return;
-      } else if (service.id === "personalization" || service.id === "validation" || service.id === "birth-attestation") {
+      } else if (service.id === "validation") {
+        endpoint = '/api/identity/validation';
+        body = { 
+          nin: inputValue, 
+          validationType: selectedStatus,
+          slipType: selectedSlip 
+        };
+        setIsLoading(false);
+        setRequestStatus("pending");
+        return;
+      } else if (service.id === "personalization" || service.id === "birth-attestation") {
         setIsLoading(false);
         setRequestStatus("pending");
         return;
@@ -197,10 +250,10 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
           <h3 className="text-2xl font-bold text-yellow-800 dark:text-yellow-400">Request Submitted</h3>
           <p className="text-yellow-700 dark:text-yellow-300 max-w-xs mx-auto">
             Your {service.name} request has been submitted successfully. 
-            Status is currently <strong>Pending Admin Approval</strong>.
+            Requests are processed the same day - often within 1-30 minutes depending on traffic.
           </p>
           <p className="text-sm text-muted-foreground">
-            You will be notified once the admin processes your request and uploads the result slip.
+            Thank you for your continued support!
           </p>
           <Button onClick={() => setRequestStatus("idle")} variant="outline" className="mt-4">Submit Another Request</Button>
         </CardContent>
@@ -225,177 +278,571 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
     );
   }
 
-  if (service.id.includes("verification") || service.id.includes("lookup") || service.id === "nin-phone") {
+  if (service.id === "nin-verification") {
     return (
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Search Identity</CardTitle>
-              <CardDescription>Enter the required details to verify. Price: ₦{price}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSearch} className="space-y-6">
-                {service.id === "nin-phone" ? (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-primary">NIN Verification</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">1. Slip Layout</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {SLIP_TYPES.map((slip) => (
+                    <div
+                      key={slip.id}
+                      onClick={() => setSelectedSlip(slip.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedSlip === slip.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{slip.price.toFixed(2)}</span>
+                      </div>
+                      <div className="aspect-[3/2] bg-gray-100 rounded overflow-hidden mb-2">
+                        <img src={slip.image} alt={slip.name} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-xs text-center text-orange-600 font-medium">{slip.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedSlip === slip.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedSlip === slip.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Supply ID Number</Label>
+                <div className="space-y-2">
+                  <Input 
+                    name="input"
+                    placeholder="NIN NUMBER" 
+                    maxLength={11} 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    required 
+                    className="h-12 font-mono text-lg tracking-widest uppercase bg-gray-50" 
+                  />
+                  <p className="text-xs text-muted-foreground">We'll never share your details with anyone else.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+
+              <Button type="submit" size="lg" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isLoading || !consentChecked}>
+                {isLoading ? (
                   <>
-                    <div className="space-y-2">
-                      <Label>National Identity Number (NIN)</Label>
-                      <Input 
-                        name="input"
-                        placeholder="11 Digit NIN" 
-                        maxLength={11} 
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        required 
-                        className="h-12 font-mono text-lg tracking-widest" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Phone Number</Label>
-                      <Input 
-                        name="phone"
-                        placeholder="08012345678" 
-                        maxLength={11} 
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        required 
-                        className="h-12 font-mono text-lg tracking-widest" 
-                      />
-                    </div>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
                   </>
                 ) : (
-                  <div className="space-y-2">
-                    <Label>National Identity Number (NIN)</Label>
-                    <Input 
-                      name="input"
-                      placeholder="11 Digit NIN" 
-                      maxLength={11} 
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      required 
-                      className="h-12 font-mono text-lg tracking-widest" 
-                    />
-                  </div>
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Verify
+                  </>
                 )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-                <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying with YouVerify...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Verify Now (₦{price})
-                    </>
-                  )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+        {result && <ResultSection result={result} slipHtml={slipHtml} onDownload={handleDownloadSlip} onPrint={handlePrintSlip} slipContainerRef={slipContainerRef} />}
+      </div>
+    );
+  }
 
-          {result && (
-            <div className="space-y-6">
-              <ResultCard result={result} type={service.id} />
-              
-              {slipHtml && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Download Result Slip</CardTitle>
-                    <CardDescription>Your verified identity slip is ready</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div ref={slipContainerRef} className="border rounded-lg overflow-hidden mb-6">
-                      <iframe 
-                        srcDoc={slipHtml} 
-                        className="w-full h-96 border-0"
-                        title="Identity Slip Preview"
-                      />
+  if (service.id === "nin-phone") {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-primary">NIN With Phone Verification</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">1. Slip Layout</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {SLIP_TYPES.map((slip) => (
+                    <div
+                      key={slip.id}
+                      onClick={() => setSelectedSlip(slip.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedSlip === slip.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{slip.price.toFixed(2)}</span>
+                      </div>
+                      <div className="aspect-[3/2] bg-gray-100 rounded overflow-hidden mb-2">
+                        <img src={slip.image} alt={slip.name} className="w-full h-full object-cover" />
+                      </div>
+                      <p className="text-xs text-center text-orange-600 font-medium">{slip.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedSlip === slip.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedSlip === slip.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex gap-4 justify-end">
-                      <Button variant="outline" onClick={handlePrintSlip}>
-                        <Printer className="mr-2 h-4 w-4" />
-                        Print Slip
-                      </Button>
-                      <Button onClick={handleDownloadSlip}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Slip
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </div>
+                  ))}
+                </div>
+              </div>
 
-        <div className="space-y-6">
-          <Card className="bg-muted/30 border-none">
-            <CardHeader>
-              <CardTitle className="text-base">Instructions</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm space-y-2 text-muted-foreground">
-              <p>1. Ensure you have the correct NIN number.</p>
-              <p>2. Consent must be obtained from the ID holder.</p>
-              <p>3. Results are fetched directly from NIMC via YouVerify.</p>
-              <p>4. Service fee: ₦{price} will be deducted from your wallet.</p>
-            </CardContent>
-          </Card>
-        </div>
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Supply ID Number</Label>
+                <div className="space-y-2">
+                  <Input 
+                    name="input"
+                    placeholder="PHONE NUMBER" 
+                    maxLength={11} 
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    required 
+                    className="h-12 font-mono text-lg tracking-widest uppercase bg-gray-50" 
+                  />
+                  <p className="text-xs text-muted-foreground">We'll never share your details with anyone else.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+
+              <Button type="submit" size="lg" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isLoading || !consentChecked}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Verify
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {result && <ResultSection result={result} slipHtml={slipHtml} onDownload={handleDownloadSlip} onPrint={handlePrintSlip} slipContainerRef={slipContainerRef} />}
+      </div>
+    );
+  }
+
+  if (service.id === "nin-tracking") {
+    return (
+      <div className="space-y-6">
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertDescription className="text-orange-800">
+            <strong>NOTE:</strong> Dear customers, requests are processed the same day - often within 1-30 minutes depending on the traffic. Thank you for your continued support!
+          </AlertDescription>
+        </Alert>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-primary">NIN With Tracking ID Verification</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">1. Slip Layout</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md">
+                  <div
+                    onClick={() => setSelectedSlip("standard")}
+                    className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                      selectedSlip === "standard"
+                        ? 'border-primary bg-primary/5'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="text-center mb-2">
+                      <span className="text-sm font-bold text-primary">₦250.00</span>
+                    </div>
+                    <div className="aspect-[3/2] bg-gray-100 rounded overflow-hidden mb-2">
+                      <img src={slipStandard} alt="Standard Slip" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex justify-center mt-2">
+                      <div className={`w-4 h-4 rounded-full border-2 ${
+                        selectedSlip === "standard" ? 'border-primary bg-primary' : 'border-gray-300'
+                      }`}>
+                        {selectedSlip === "standard" && (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-2 h-2 bg-white rounded-full" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Supply ID Number</Label>
+                <div className="space-y-2">
+                  <Input 
+                    name="input"
+                    placeholder="TRACKING ID" 
+                    required 
+                    className="h-12 font-mono text-lg tracking-widest uppercase bg-gray-50" 
+                  />
+                  <p className="text-xs text-muted-foreground">We'll never share your details with anyone else.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+
+              <Button type="submit" size="lg" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isLoading || !consentChecked}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Verify
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {result && <ResultSection result={result} slipHtml={slipHtml} onDownload={handleDownloadSlip} onPrint={handlePrintSlip} slipContainerRef={slipContainerRef} />}
       </div>
     );
   }
 
   if (service.id === "ipe-clearance") {
-     return (
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle>Lost NIN Recovery</CardTitle>
-          <CardDescription>Recover your lost NIN using NIMC second enrollment tracking ID. Price: ₦{price}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSearch} className="space-y-4">
-             <div className="space-y-2">
-              <Label>Phone Number (Linked to NIN)</Label>
-              <Input name="phone" placeholder="08012345678" className="h-12" required />
-            </div>
-             <div className="space-y-2">
-              <Label>Tracking ID / Second Enrollment ID</Label>
-              <Input name="input" placeholder="Enter Tracking ID" className="h-12" required />
-            </div>
-             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-               {isLoading ? <Loader2 className="animate-spin" /> : `Recover NIN (₦${price})`}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-primary">IPE CLEARANCE (instantly)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">1. Details Needed</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {IPE_STATUS_OPTIONS.map((option) => (
+                    <div
+                      key={option.id}
+                      onClick={() => setSelectedStatus(option.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedStatus === option.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{option.price.toLocaleString()}.00</span>
+                      </div>
+                      <p className="text-xs text-center text-gray-600">{option.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedStatus === option.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedStatus === option.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Slip Type (for clearance)</Label>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
+                  {IPE_SLIP_TYPES.map((slip) => (
+                    <div
+                      key={slip.id}
+                      onClick={() => setSelectedSlip(slip.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedSlip === slip.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{slip.price.toFixed(1)}</span>
+                      </div>
+                      {slip.image && (
+                        <div className="aspect-[3/2] bg-gray-100 rounded overflow-hidden mb-2">
+                          <img src={slip.image} alt={slip.name} className="w-full h-full object-cover" />
+                        </div>
+                      )}
+                      <p className="text-xs text-center text-orange-600 font-medium">{slip.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedSlip === slip.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedSlip === slip.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">3. Supply Tracking ID</Label>
+                <div className="space-y-2">
+                  <Input 
+                    name="trackingId"
+                    placeholder="Enter Tracking ID" 
+                    required 
+                    className="h-12 bg-gray-50" 
+                  />
+                  <p className="text-xs text-muted-foreground">We'll never share your details with anyone else.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+
+              <Button type="submit" size="lg" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isLoading || !consentChecked || !selectedStatus}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Submit
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
-  if (service.id === "personalization" || service.id === "validation") {
+  if (service.id === "validation") {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-primary">VALIDATION (instantly)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <Label className="text-sm font-medium mb-3 block">1. Details Needed</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {VALIDATION_OPTIONS.map((option) => (
+                    <div
+                      key={option.id}
+                      onClick={() => setSelectedStatus(option.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedStatus === option.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{option.price.toLocaleString()}.00</span>
+                      </div>
+                      <p className="text-xs text-center text-gray-600">{option.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedStatus === option.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedStatus === option.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Slip Type</Label>
+                <div className="grid grid-cols-2 gap-4 max-w-md">
+                  {VALIDATION_SLIP_TYPES.map((slip) => (
+                    <div
+                      key={slip.id}
+                      onClick={() => setSelectedSlip(slip.id)}
+                      className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                        selectedSlip === slip.id
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-center mb-2">
+                        <span className="text-sm font-bold text-primary">₦{slip.price.toFixed(1)}</span>
+                      </div>
+                      {slip.image ? (
+                        <div className="aspect-[3/2] bg-gray-100 rounded overflow-hidden mb-2">
+                          <img src={slip.image} alt={slip.name} className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="aspect-[3/2] bg-gray-100 rounded flex items-center justify-center mb-2">
+                          <span className="text-gray-400 text-sm">No Slip</span>
+                        </div>
+                      )}
+                      <p className="text-xs text-center text-orange-600 font-medium">{slip.name}</p>
+                      <div className="flex justify-center mt-2">
+                        <div className={`w-4 h-4 rounded-full border-2 ${
+                          selectedSlip === slip.id ? 'border-primary bg-primary' : 'border-gray-300'
+                        }`}>
+                          {selectedSlip === slip.id && (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="w-2 h-2 bg-white rounded-full" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-sm font-medium mb-3 block">2. Supply NIN</Label>
+                <div className="space-y-2">
+                  <Input 
+                    name="input"
+                    placeholder="Enter NIN" 
+                    maxLength={11}
+                    required 
+                    className="h-12 bg-gray-50" 
+                  />
+                  <p className="text-xs text-muted-foreground">We'll never share your details with anyone else.</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+
+              <Button type="submit" size="lg" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={isLoading || !consentChecked || !selectedStatus}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Submit
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (service.id === "personalization") {
     return (
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>{service.id === "personalization" ? "Personalization Request" : "Validation Request"}</CardTitle>
-          <CardDescription>Submit a request to {service.id === "personalization" ? "personalize your identity details" : "validate your identity"}. Price: ₦{price}</CardDescription>
+          <CardTitle>Personalization Request</CardTitle>
+          <CardDescription>Submit a request to personalize your identity details.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="space-y-4">
              <div className="space-y-2">
-              <Label>{service.id === "personalization" ? "Tracking ID / Reference" : "National Identity Number (NIN)"}</Label>
+              <Label>Tracking ID / Reference</Label>
               <Input 
                 name="input" 
-                placeholder={service.id === "personalization" ? "Enter Tracking ID" : "11 Digit NIN"}
+                placeholder="Enter Tracking ID"
                 className="h-12" 
-                maxLength={service.id === "personalization" ? undefined : 11}
-                inputMode={service.id === "personalization" ? "text" : "numeric"}
-                pattern={service.id === "personalization" ? undefined : "[0-9]*"}
                 required 
               />
             </div>
-             <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
-               {isLoading ? <Loader2 className="animate-spin" /> : `Submit Request (₦${price})`}
+            <div className="flex items-start space-x-2">
+              <Checkbox 
+                id="consent" 
+                checked={consentChecked}
+                onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+              />
+              <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+              </label>
+            </div>
+             <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" size="lg" disabled={isLoading || !consentChecked}>
+               {isLoading ? <Loader2 className="animate-spin" /> : `Submit Request`}
             </Button>
           </form>
         </CardContent>
@@ -409,7 +856,7 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
         <Card>
           <CardHeader>
             <CardTitle>Birth Attestation Certificate Request</CardTitle>
-            <CardDescription>Request an NPC birth certificate or attestation document. Price: ₦{price}</CardDescription>
+            <CardDescription>Request an NPC birth certificate or attestation document.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSearch} className="space-y-4">
@@ -443,7 +890,17 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
                 <Label htmlFor="parents">Parents/Guardian Name</Label>
                 <Input id="parents" name="parents" placeholder="Name of parent or guardian" className="h-12" required />
               </div>
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              <div className="flex items-start space-x-2">
+                <Checkbox 
+                  id="consent" 
+                  checked={consentChecked}
+                  onCheckedChange={(checked) => setConsentChecked(checked as boolean)}
+                />
+                <label htmlFor="consent" className="text-sm text-muted-foreground leading-tight">
+                  By checking this box, you agreed that the owner of the ID has granted you consent to verify his/her identity.
+                </label>
+              </div>
+              <Button type="submit" className="w-full bg-orange-500 hover:bg-orange-600" size="lg" disabled={isLoading || !consentChecked}>
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -452,24 +909,11 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
                 ) : (
                   <>
                     <FileText className="mr-2 h-4 w-4" />
-                    Request Certificate (₦{price})
+                    Request Certificate
                   </>
                 )}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-        
-        <Card className="mt-6 bg-muted/30 border-none">
-          <CardHeader>
-            <CardTitle className="text-base">Requirements</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2 text-muted-foreground">
-            <p>✓ Full name as on birth certificate</p>
-            <p>✓ Exact date of birth</p>
-            <p>✓ State and LGA of registration</p>
-            <p>✓ Parent/Guardian details</p>
-            <p>✓ Valid means of identification</p>
           </CardContent>
         </Card>
       </div>
@@ -483,18 +927,20 @@ function ServiceContent({ service, price }: { service: any, price: number }) {
       </div>
       <h3 className="text-xl font-bold mb-2">{service.name}</h3>
       <p className="text-muted-foreground max-w-md mb-6">
-        This service is currently being maintained or requires manual processing. Please contact support for assistance.
+        This service is currently being set up. Please check back later.
       </p>
-      <Button variant="outline">Contact Support</Button>
+      <Link href="/dashboard/identity">
+        <Button variant="outline">Back to Services</Button>
+      </Link>
     </div>
   );
 }
 
-function ResultCard({ result, type }: { result: any, type: string }) {
+function ResultSection({ result, slipHtml, onDownload, onPrint, slipContainerRef }: any) {
   const fullName = `${result.lastName || ''} ${result.firstName || ''} ${result.middleName || ''}`.trim();
   
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Card className="border-primary/50 shadow-md overflow-hidden">
         <div className="bg-primary/10 p-4 border-b border-primary/20 flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary font-bold">
@@ -551,6 +997,34 @@ function ResultCard({ result, type }: { result: any, type: string }) {
           </div>
         </CardContent>
       </Card>
+      
+      {slipHtml && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Download Result Slip</CardTitle>
+            <CardDescription>Your verified identity slip is ready</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div ref={slipContainerRef} className="border rounded-lg overflow-hidden mb-6">
+              <iframe 
+                srcDoc={slipHtml} 
+                className="w-full h-96 border-0"
+                title="Identity Slip Preview"
+              />
+            </div>
+            <div className="flex gap-4 justify-end">
+              <Button variant="outline" onClick={onPrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Print Slip
+              </Button>
+              <Button onClick={onDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Download Slip
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

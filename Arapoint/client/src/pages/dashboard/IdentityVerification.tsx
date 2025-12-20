@@ -26,17 +26,20 @@ import {
   ChevronRight,
   Shield,
   Download,
-  FileText
+  FileText,
+  Hash,
+  RefreshCw,
+  AlertTriangle
 } from "lucide-react";
 
 export const SERVICES = [
-  { id: "nin-verification", name: "NIN Verification", icon: ShieldCheck, color: "text-green-600", bg: "bg-green-100 dark:bg-green-900/20", desc: "Verify using 11-digit NIN", price: 150 },
-  { id: "nin-phone", name: "NIN With Phone", icon: Smartphone, color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-900/20", desc: "Search NIN using Phone Number", price: 200 },
-  { id: "ipe-clearance", name: "Lost NIN Recovery", icon: CheckCircle, color: "text-teal-600", bg: "bg-teal-100 dark:bg-teal-900/20", desc: "Recover lost NIN using NIMC tracking ID", price: 2500 },
-  { id: "validation", name: "Validation", icon: FileCheck, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-900/20", desc: "General Identity Validation", price: 1500 },
-  { id: "personalization", name: "Personalization", icon: UserCog, color: "text-pink-600", bg: "bg-pink-100 dark:bg-pink-900/20", desc: "Customize Identity Data", price: 3000 },
-  { id: "birth-attestation", name: "Birth Attestation", icon: Baby, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-900/20", desc: "NPC Birth Certificate", price: 5000 },
-  { id: "agent-services", name: "Manual Services", icon: FilePenLine, color: "text-purple-600", bg: "bg-purple-100 dark:bg-purple-900/20", desc: "NIN Validation, IPE Clearance, Personalization" },
+  { id: "nin-verification", name: "NIN Verification", icon: ShieldCheck, color: "text-green-600", bg: "bg-green-100 dark:bg-green-900/20", desc: "Verify using 11-digit NIN" },
+  { id: "nin-phone", name: "NIN With Phone", icon: Smartphone, color: "text-blue-600", bg: "bg-blue-100 dark:bg-blue-900/20", desc: "Search NIN using Phone Number" },
+  { id: "nin-tracking", name: "NIN With Tracking ID", icon: Hash, color: "text-cyan-600", bg: "bg-cyan-100 dark:bg-cyan-900/20", desc: "Verify using NIMC Tracking ID" },
+  { id: "ipe-clearance", name: "IPE Clearance", icon: RefreshCw, color: "text-teal-600", bg: "bg-teal-100 dark:bg-teal-900/20", desc: "Clear IPE errors and enrollment issues" },
+  { id: "validation", name: "Validation", icon: FileCheck, color: "text-emerald-600", bg: "bg-emerald-100 dark:bg-emerald-900/20", desc: "Record validation and corrections" },
+  { id: "personalization", name: "Personalization", icon: UserCog, color: "text-pink-600", bg: "bg-pink-100 dark:bg-pink-900/20", desc: "Customize Identity Data" },
+  { id: "birth-attestation", name: "Birth Attestation", icon: Baby, color: "text-rose-600", bg: "bg-rose-100 dark:bg-rose-900/20", desc: "NPC Birth Certificate" },
   { id: "transactions", name: "Transactions", icon: History, color: "text-gray-600", bg: "bg-gray-100 dark:bg-gray-800", desc: "View verification logs" },
   { id: "verifications", name: "Verifications", icon: ListChecks, color: "text-slate-600", bg: "bg-slate-100 dark:bg-slate-800", desc: "Manage saved verifications" },
 ];
@@ -72,7 +75,6 @@ export default function IdentityVerification() {
         </div>
       </div>
 
-      {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="bg-primary text-primary-foreground border-none">
           <CardContent className="p-6 flex items-center justify-between">
@@ -98,7 +100,6 @@ export default function IdentityVerification() {
         </Card>
       </div>
 
-      {/* Services Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {SERVICES.map((service) => (
           <Link key={service.id} href={`/dashboard/identity/${service.id}`}>
@@ -110,7 +111,6 @@ export default function IdentityVerification() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold leading-tight truncate pr-2">{service.name}</h4>
-                    {service.price && <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">₦{service.price.toLocaleString()}</span>}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{service.desc}</p>
                 </div>
@@ -123,7 +123,6 @@ export default function IdentityVerification() {
         ))}
       </div>
 
-      {/* NIN Slip Tiers */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

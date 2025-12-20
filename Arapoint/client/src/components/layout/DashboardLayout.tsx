@@ -15,7 +15,8 @@ import {
   Users,
   Gift,
   BookOpen,
-  Building2
+  Building2,
+  ArrowRightLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -64,6 +65,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: "/dashboard/education", label: "Education Services", icon: GraduationCap },
     { href: "/dashboard/buy-pins", label: "Buy Exam PINs", icon: Gift },
     { href: "/dashboard/vtu", label: "VTU Services", icon: Smartphone },
+    { href: "/dashboard/airtime-to-cash", label: "Airtime to Cash", icon: ArrowRightLeft },
     { href: "/dashboard/subscriptions", label: "Subscriptions", icon: Zap },
     { href: "/dashboard/cac", label: "CAC Registration", icon: Building2 },
   ];

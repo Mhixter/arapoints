@@ -30,6 +30,7 @@ import ElectricityServices from "@/pages/dashboard/ElectricityServices";
 import CableServices from "@/pages/dashboard/CableServices";
 import CACServices from "@/pages/dashboard/CACServices";
 import FundWallet from "@/pages/dashboard/FundWallet";
+import AirtimeToCash from "@/pages/dashboard/AirtimeToCash";
 
 // Agent Imports
 import CACAgentLogin from "@/pages/agent/CACAgentLogin";
@@ -226,6 +227,11 @@ function Router() {
         <Route path="/dashboard/cable">
           <DashboardLayout>
             <CableServices />
+          </DashboardLayout>
+        </Route>
+        <Route path="/dashboard/airtime-to-cash">
+          <DashboardLayout>
+            <AirtimeToCash />
           </DashboardLayout>
         </Route>
         <Route path="/dashboard/cac">
