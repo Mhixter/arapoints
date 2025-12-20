@@ -59,7 +59,7 @@ export async function registerRoutes(
   app.post('/api/upload/get-url', authMiddleware, authenticatedRateLimiter, async (req, res) => {
     try {
       const { prefix } = req.body;
-      const allowedPrefixes = ['cac-certificates', 'cac-status-reports', 'documents'];
+      const allowedPrefixes = ['cac-certificates', 'cac-status-reports', 'documents', 'identity-slips'];
       const safePrefix = allowedPrefixes.includes(prefix) ? prefix : 'documents';
       const result = await objectStorageService.getObjectEntityUploadURL(safePrefix);
       res.json(result);

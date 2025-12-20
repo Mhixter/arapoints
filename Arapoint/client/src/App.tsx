@@ -17,6 +17,7 @@ import AdminDashboardLayout from "@/components/layout/AdminDashboardLayout";
 import Overview from "@/pages/dashboard/Overview";
 import IdentityVerification from "@/pages/dashboard/IdentityVerification";
 import IdentityServiceRouter from "@/pages/dashboard/identity/IdentityServiceRouter";
+import IdentityAgentServices from "@/pages/dashboard/identity/IdentityAgentServices";
 import BVNRetrieval from "@/pages/dashboard/BVNRetrieval";
 import EducationServices from "@/pages/dashboard/EducationServices";
 import VerificationHistory from "@/pages/dashboard/VerificationHistory";
@@ -33,6 +34,7 @@ import FundWallet from "@/pages/dashboard/FundWallet";
 // CAC Agent Imports
 import CACAgentLogin from "@/pages/agent/CACAgentLogin";
 import CACAgentDashboard from "@/pages/agent/CACAgentDashboard";
+import IdentityAgentDashboard from "@/pages/agent/IdentityAgentDashboard";
 import BuyPINs from "@/pages/dashboard/BuyPINs";
 import Profile from "@/pages/dashboard/Profile";
 import Settings from "@/pages/dashboard/Settings";
@@ -60,6 +62,7 @@ function Router() {
       {/* CAC Agent Routes - outside MainLayout */}
       <Route path="/agent/login" component={CACAgentLogin} />
       <Route path="/agent/dashboard" component={CACAgentDashboard} />
+      <Route path="/agent/identity" component={IdentityAgentDashboard} />
       
       {/* Admin Routes - outside MainLayout */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -138,6 +141,13 @@ function Router() {
         <Route path="/dashboard/identity">
           <DashboardLayout>
             <IdentityVerification />
+          </DashboardLayout>
+        </Route>
+
+        {/* Identity Agent Services */}
+        <Route path="/dashboard/identity/agent-services">
+          <DashboardLayout>
+            <IdentityAgentServices />
           </DashboardLayout>
         </Route>
 
