@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2, AlertTriangle, Lock, ArrowRight } from "lucide-react";
+import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useEffect, useState, useCallback } from "react";
@@ -52,7 +52,6 @@ export default function Overview() {
   const [virtualAccount, setVirtualAccount] = useState<VirtualAccount | null>(null);
   const [accountLoading, setAccountLoading] = useState(true);
   const [generatingAccount, setGeneratingAccount] = useState(false);
-  const [requiresKyc, setRequiresKyc] = useState(false);
 
   const getAuthToken = () => localStorage.getItem('accessToken');
 
@@ -121,9 +120,6 @@ export default function Overview() {
         const response = await walletApi.getVirtualAccount();
         if (response?.account) {
           setVirtualAccount(response.account);
-        }
-        if (response?.requiresKyc) {
-          setRequiresKyc(true);
         }
       } catch (error) {
         console.error('Failed to fetch virtual account:', error);
@@ -206,38 +202,6 @@ export default function Overview() {
 
   return (
     <div className="space-y-8">
-      {requiresKyc && (
-        <Card className="border-l-4 border-l-amber-500 bg-amber-50 dark:bg-amber-900/20 shadow-md">
-          <CardContent className="pt-6 pb-6">
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
-                <Lock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-amber-900 dark:text-amber-100 text-lg mb-1">Complete Your Identity Verification</h3>
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-4">
-                  You need to verify your NIN (National Identification Number) to unlock your PayVessel virtual account and start receiving payments via bank transfer.
-                </p>
-                <div className="flex gap-3">
-                  <Link href="/dashboard/identity/nin-verification">
-                    <Button className="bg-amber-600 hover:bg-amber-700 text-white">
-                      <ShieldCheck className="h-4 w-4 mr-2" />
-                      Submit NIN for Verification
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard/identity">
-                    <Button variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
-                      View All Identity Services
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid md:grid-cols-2 gap-4">
         <Card className="bg-gradient-to-r from-primary/90 to-primary text-primary-foreground border-0 shadow-lg">
           <CardContent className="pt-4 sm:pt-6">
@@ -288,18 +252,6 @@ export default function Overview() {
                   <span className="text-sm text-muted-foreground">Account Name</span>
                   <span className="font-medium text-sm">{virtualAccount.accountName}</span>
                 </div>
-              </div>
-            ) : requiresKyc ? (
-              <div className="flex flex-col items-center justify-center py-6">
-                <AlertTriangle className="h-10 w-10 text-yellow-500 mb-3" />
-                <p className="text-sm text-muted-foreground mb-1 text-center">KYC Required</p>
-                <p className="text-xs text-muted-foreground mb-3 text-center">Verify your NIN or BVN to generate a virtual account</p>
-                <Link href="/dashboard/identity">
-                  <Button variant="outline">
-                    <ShieldCheck className="h-4 w-4 mr-2" />
-                    Complete KYC
-                  </Button>
-                </Link>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-6">
