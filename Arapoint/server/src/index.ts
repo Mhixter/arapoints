@@ -11,6 +11,7 @@ import educationRoutes from './api/routes/education';
 import airtimeRoutes from './api/routes/airtime';
 import dataRoutes from './api/routes/data';
 import walletRoutes from './api/routes/wallet';
+import webhookRoutes from './api/routes/webhooks';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/api/education', educationRoutes);
 app.use('/api/airtime', airtimeRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/webhooks', webhookRoutes);
 
 // Error Handler
 app.use(errorHandler);

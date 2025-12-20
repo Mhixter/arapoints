@@ -108,6 +108,56 @@ cd Arapoint
 npm run dev
 ```
 
+## PayVessel Webhook Configuration
+
+### Webhook Endpoint
+**URL:** `https://your-arapoint-domain.com/webhooks/payvessel`
+
+### How It Works
+1. User transfers funds to their PayVessel virtual account
+2. PayVessel receives the payment and sends a webhook notification to Arapoint
+3. Arapoint verifies the webhook signature for security
+4. User's wallet is automatically credited with the received amount
+5. Transaction record is created for audit trail
+
+### Setting Up in PayVessel
+1. Log in to your PayVessel dashboard
+2. Navigate to Webhooks/Notifications settings
+3. Add the webhook URL: `https://your-arapoint-domain.com/webhooks/payvessel`
+4. Set the event type: "Payment Received" or "Transaction Completed"
+5. Ensure the webhook is enabled
+6. Test the webhook configuration from PayVessel dashboard
+
+### Webhook Payload Structure (from PayVessel)
+```json
+{
+  "transactionReference": "TRX123456",
+  "settlementId": "SETTLE123",
+  "paymentReference": "PAY123",
+  "amount": 50000,
+  "transactionDate": "2025-12-20T10:00:00Z",
+  "transactionDescription": "Bank transfer to account",
+  "destinationAccountNumber": "0123456789",
+  "destinationAccountName": "User Name",
+  "destinationBankCode": "120001",
+  "destinationBankName": "9Payment Service Bank",
+  "sourceAccountNumber": "1234567890",
+  "sourceAccountName": "Sender Name",
+  "sourceBankCode": "050001",
+  "sourceBankName": "FCMB",
+  "status": "completed",
+  "fee": 100,
+  "vat": 15,
+  "currency": "NGN"
+}
+```
+
+### Security
+- All webhooks are signed with HMAC-SHA512
+- Signature is sent in the `X-PayVessel-Signature` header
+- The signature is verified using your PayVessel secret key
+- Only successfully verified webhooks are processed
+
 ## Development Notes
 - OTPs are logged to console when SendGrid is not configured
 - Rate limiting is applied to all public routes
