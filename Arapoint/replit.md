@@ -165,6 +165,10 @@ npm run dev
 - Maximum 20 concurrent RPA jobs with exponential backoff retry
 
 ## Recent Changes
+- 2025-12-20: Added CAC agent price management UI with tabbed interface for managing service pricing
+- 2025-12-20: Added searchable business nature dropdown with 120+ CAC approved categories
+- 2025-12-20: Added document upload UI for CAC registration (passport photo, signature, NIN slip) using base64 encoding
+- 2025-12-20: Added price management API endpoints for CAC agents (GET/PUT/POST /cac-agent/service-types)
 - 2025-12-16: Added PDF file upload for CAC agent document completion using object storage
 - 2025-12-16: Added sample NIN slip downloads for all 4 tiers (Information, Regular, Standard, Premium)
 - 2025-12-16: Connected admin pricing UI to real database API with numeric validation
