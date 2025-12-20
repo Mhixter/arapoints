@@ -293,6 +293,16 @@ export const cacAgents = pgTable('cac_agents', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// CAC Business Nature Categories (from CAC Portal)
+export const cacBusinessNatures = pgTable('cac_business_natures', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar('code', { length: 50 }).unique().notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  category: varchar('category', { length: 100 }),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // CAC Registration Requests
 export const cacRegistrationRequests = pgTable('cac_registration_requests', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -311,6 +321,9 @@ export const cacRegistrationRequests = pgTable('cac_registration_requests', {
   additionalProprietors: jsonb('additional_proprietors').default('[]'),
   shareCapital: decimal('share_capital', { precision: 15, scale: 2 }),
   objectives: text('objectives'),
+  passportPhotoUrl: varchar('passport_photo_url', { length: 500 }),
+  signatureUrl: varchar('signature_url', { length: 500 }),
+  ninSlipUrl: varchar('nin_slip_url', { length: 500 }),
   status: varchar('status', { length: 50 }).default('submitted'),
   assignedAgentId: uuid('assigned_agent_id').references(() => cacAgents.id),
   assignedAt: timestamp('assigned_at'),

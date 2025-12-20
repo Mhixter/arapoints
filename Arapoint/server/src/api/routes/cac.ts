@@ -10,6 +10,7 @@ import {
   cacRequestDocuments,
   cacRequestActivity,
   cacRequestMessages,
+  cacBusinessNatures,
   users
 } from '../../db/schema';
 import { eq, desc, count, and } from 'drizzle-orm';
@@ -40,6 +41,20 @@ router.get('/service-types', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/business-natures', async (req: Request, res: Response) => {
+  try {
+    const natures = await db.select()
+      .from(cacBusinessNatures)
+      .where(eq(cacBusinessNatures.isActive, true))
+      .orderBy(cacBusinessNatures.name);
+
+    res.json(formatResponse('success', 200, 'Business natures retrieved', { natures }));
+  } catch (error: any) {
+    logger.error('Get business natures error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get business natures'));
+  }
+});
+
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const {
@@ -57,6 +72,9 @@ router.post('/register', async (req: Request, res: Response) => {
       shareCapital,
       objectives,
       customerNotes,
+      passportPhotoUrl,
+      signatureUrl,
+      ninSlipUrl,
     } = req.body;
 
     if (!serviceType || !businessName || !proprietorName) {
@@ -99,6 +117,9 @@ router.post('/register', async (req: Request, res: Response) => {
       shareCapital: shareCapital?.toString(),
       objectives,
       customerNotes,
+      passportPhotoUrl,
+      signatureUrl,
+      ninSlipUrl,
       status: CAC_STATUS.SUBMITTED,
       fee: fee.toString(),
       isPaid: true,
