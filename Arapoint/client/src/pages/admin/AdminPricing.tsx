@@ -32,6 +32,10 @@ const SERVICE_DEFINITIONS: Record<string, { category: string; name: string; desc
   bvn_verification: { category: 'Identity', name: 'BVN Verification', description: 'Verify Bank Verification Number' },
   bvn_phone_lookup: { category: 'Identity', name: 'BVN Phone Lookup', description: 'Retrieve BVN using phone number' },
   birth_attestation: { category: 'Identity', name: 'Birth Attestation', description: 'Birth certificate attestation service' },
+  // Manual Identity Services (handled by Identity Agents)
+  nin_validation: { category: 'Identity Agent', name: 'NIN Validation', description: 'Update NIN record (name/address/phone - manual processing)' },
+  ipe_clearance: { category: 'Identity Agent', name: 'IPE Clearance', description: 'Get old NIN using new tracking ID with fingerprint recapture' },
+  nin_personalization: { category: 'Identity Agent', name: 'NIN Personalization', description: 'Get NIN slip using tracking ID' },
   // Wallet Services
   wallet_virtual_account: { category: 'Wallet', name: 'Virtual Account Creation', description: 'PayVessel virtual account generation' },
   wallet_transfer: { category: 'Wallet', name: 'Wallet Transfer', description: 'Transfer between wallets' },
@@ -84,7 +88,7 @@ const SERVICE_CATEGORIES: Record<string, string> = Object.fromEntries(
   Object.entries(SERVICE_DEFINITIONS).map(([key, val]) => [key, val.category])
 );
 
-const CATEGORY_LIST = ['Identity', 'Wallet', 'Education', 'CAC', 'VTU Airtime', 'VTU Data', 'VTU Electricity', 'VTU Cable'];
+const CATEGORY_LIST = ['Identity', 'Identity Agent', 'Wallet', 'Education', 'CAC', 'VTU Airtime', 'VTU Data', 'VTU Electricity', 'VTU Cable'];
 
 const getAuthToken = () => localStorage.getItem('accessToken');
 

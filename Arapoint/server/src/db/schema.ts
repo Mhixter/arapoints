@@ -384,3 +384,64 @@ export const cacRequestMessages = pgTable('cac_request_messages', {
   readAt: timestamp('read_at'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// Identity Agents (for manual NIN services)
+export const identityAgents = pgTable('identity_agents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).unique().notNull(),
+  employeeId: varchar('employee_id', { length: 50 }),
+  name: varchar('name', { length: 255 }).notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
+  specializations: jsonb('specializations').default('["nin_validation", "ipe_clearance", "nin_personalization"]'),
+  maxActiveRequests: integer('max_active_requests').default(20),
+  currentActiveRequests: integer('current_active_requests').default(0),
+  totalCompletedRequests: integer('total_completed_requests').default(0),
+  isAvailable: boolean('is_available').default(true),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Identity Service Requests (NIN Validation, IPE Clearance, NIN Personalization)
+export const identityServiceRequests = pgTable('identity_service_requests', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  trackingId: varchar('tracking_id', { length: 20 }).unique().notNull(),
+  serviceType: varchar('service_type', { length: 50 }).notNull(), // nin_validation, ipe_clearance, nin_personalization
+  // Request details based on service type
+  nin: varchar('nin', { length: 11 }),
+  newTrackingId: varchar('new_tracking_id', { length: 50 }), // For IPE and Personalization
+  // For NIN Validation - what fields to update
+  updateFields: jsonb('update_fields'), // { name: 'new name', address: 'new address', phone: 'new phone' }
+  // Status tracking
+  status: varchar('status', { length: 30 }).default('pending').notNull(), // pending, pickup, completed
+  assignedAgentId: uuid('assigned_agent_id').references(() => identityAgents.id),
+  assignedAt: timestamp('assigned_at'),
+  // Pricing
+  fee: decimal('fee', { precision: 10, scale: 2 }).notNull(),
+  isPaid: boolean('is_paid').default(false),
+  paymentReference: varchar('payment_reference', { length: 100 }),
+  // Result
+  slipUrl: varchar('slip_url', { length: 500 }), // For completed IPE/Personalization
+  resultData: jsonb('result_data'), // Any additional result data
+  customerNotes: text('customer_notes'),
+  agentNotes: text('agent_notes'),
+  completedAt: timestamp('completed_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Identity Request Activity Log
+export const identityRequestActivity = pgTable('identity_request_activity', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  requestId: uuid('request_id').references(() => identityServiceRequests.id).notNull(),
+  actorType: varchar('actor_type', { length: 20 }).notNull(), // user, agent, system
+  actorId: uuid('actor_id'),
+  action: varchar('action', { length: 100 }).notNull(),
+  previousStatus: varchar('previous_status', { length: 50 }),
+  newStatus: varchar('new_status', { length: 50 }),
+  comment: text('comment'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
