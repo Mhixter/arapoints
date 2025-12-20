@@ -60,6 +60,8 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/vtu", label: "VTU Services", icon: Smartphone, permission: "vtu" },
   { href: "/admin/cac", label: "CAC Services", icon: Building2, permission: "cac" },
   { href: "/admin/identity-agents", label: "Identity Agents", icon: IdCard, permission: "identity" },
+  { href: "/admin/education-agents", label: "Education Agents", icon: GraduationCap, permission: "education" },
+  { href: "/admin/a2c-agents", label: "A2C Agents", icon: DollarSign, permission: "vtu" },
   { href: "/admin/pricing", label: "Pricing Management", icon: DollarSign, permission: "pricing" },
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3, permission: "analytics" },
   { href: "/admin/roles", label: "Role Management", icon: Shield, permission: "roles" },

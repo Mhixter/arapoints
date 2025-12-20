@@ -27,7 +27,9 @@ import {
   educationServiceRequests,
   identityVerifications,
   educationPins,
-  educationPinOrders
+  educationPinOrders,
+  a2cAgents,
+  a2cRequests
 } from '../../db/schema';
 import bcrypt from 'bcryptjs';
 import { eq, desc, count, sql } from 'drizzle-orm';
@@ -2081,6 +2083,204 @@ router.get('/education-pin-orders', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Get PIN orders error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to get PIN orders'));
+  }
+});
+
+// ===================== A2C (Airtime to Cash) Agent Routes =====================
+
+// Get all A2C agents
+router.get('/a2c-agents', async (req: Request, res: Response) => {
+  try {
+    const agents = await db.select({
+      id: a2cAgents.id,
+      adminUserId: a2cAgents.adminUserId,
+      employeeId: a2cAgents.employeeId,
+      supportedNetworks: a2cAgents.supportedNetworks,
+      isAvailable: a2cAgents.isAvailable,
+      currentActiveRequests: a2cAgents.currentActiveRequests,
+      totalCompletedRequests: a2cAgents.totalCompletedRequests,
+      totalProcessedAmount: a2cAgents.totalProcessedAmount,
+      createdAt: a2cAgents.createdAt,
+      adminName: adminUsers.name,
+      adminEmail: adminUsers.email,
+    })
+      .from(a2cAgents)
+      .leftJoin(adminUsers, eq(a2cAgents.adminUserId, adminUsers.id))
+      .orderBy(desc(a2cAgents.createdAt));
+
+    res.json(formatResponse('success', 200, 'A2C agents retrieved', { agents }));
+  } catch (error: any) {
+    logger.error('Get A2C agents error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get A2C agents'));
+  }
+});
+
+// Create A2C agent
+router.post('/a2c-agents', async (req: Request, res: Response) => {
+  try {
+    const { name, email, password, employeeId, supportedNetworks } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json(formatErrorResponse(400, 'Name, email, and password are required'));
+    }
+
+    const [existingEmail] = await db.select()
+      .from(adminUsers)
+      .where(eq(adminUsers.email, email.toLowerCase()))
+      .limit(1);
+
+    if (existingEmail) {
+      return res.status(409).json(formatErrorResponse(409, 'Email already exists'));
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    let a2cAgentRole = await db.select()
+      .from(adminRoles)
+      .where(eq(adminRoles.name, 'A2C_AGENT'))
+      .limit(1);
+
+    if (a2cAgentRole.length === 0) {
+      const [newRole] = await db.insert(adminRoles).values({
+        name: 'A2C_AGENT',
+        description: 'Airtime to Cash Agent role',
+        permissions: ['a2c:view', 'a2c:process', 'a2c:update'],
+        isActive: true,
+      }).returning();
+      a2cAgentRole = [newRole];
+    }
+
+    const [newAdminUser] = await db.insert(adminUsers).values({
+      name,
+      email: email.toLowerCase(),
+      passwordHash: hashedPassword,
+      roleId: a2cAgentRole[0].id,
+      isActive: true,
+    }).returning();
+
+    const [agent] = await db.insert(a2cAgents).values({
+      adminUserId: newAdminUser.id,
+      employeeId: employeeId || `A2C${Date.now().toString(36).toUpperCase()}`,
+      supportedNetworks: supportedNetworks || ['mtn', 'airtel', 'glo', '9mobile'],
+      isAvailable: true,
+    }).returning();
+
+    logger.info('A2C agent created', { agentId: agent.id, adminUserId: newAdminUser.id, createdBy: req.userId });
+
+    res.status(201).json(formatResponse('success', 201, 'A2C agent created', {
+      agent: {
+        id: agent.id,
+        adminUserId: newAdminUser.id,
+        adminName: newAdminUser.name,
+        adminEmail: newAdminUser.email,
+        employeeId: agent.employeeId,
+        isAvailable: agent.isAvailable,
+      },
+    }));
+  } catch (error: any) {
+    logger.error('Create A2C agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to create A2C agent'));
+  }
+});
+
+// Update A2C agent
+router.put('/a2c-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { supportedNetworks, isAvailable, employeeId, maxActiveRequests } = req.body;
+
+    const [agent] = await db.select()
+      .from(a2cAgents)
+      .where(eq(a2cAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'A2C agent not found'));
+    }
+
+    const updateData: any = { updatedAt: new Date() };
+    if (supportedNetworks !== undefined) updateData.supportedNetworks = supportedNetworks;
+    if (isAvailable !== undefined) updateData.isAvailable = isAvailable;
+    if (employeeId !== undefined) updateData.employeeId = employeeId;
+    if (maxActiveRequests !== undefined) updateData.maxActiveRequests = maxActiveRequests;
+
+    await db.update(a2cAgents)
+      .set(updateData)
+      .where(eq(a2cAgents.id, id));
+
+    logger.info('A2C agent updated', { agentId: id, updatedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'A2C agent updated'));
+  } catch (error: any) {
+    logger.error('Update A2C agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update A2C agent'));
+  }
+});
+
+// Delete A2C agent
+router.delete('/a2c-agents/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [agent] = await db.select()
+      .from(a2cAgents)
+      .where(eq(a2cAgents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return res.status(404).json(formatErrorResponse(404, 'A2C agent not found'));
+    }
+
+    await db.delete(a2cAgents).where(eq(a2cAgents.id, id));
+
+    if (agent.adminUserId) {
+      await db.delete(adminUsers).where(eq(adminUsers.id, agent.adminUserId));
+    }
+
+    logger.info('A2C agent deleted', { agentId: id, deletedBy: req.userId });
+
+    res.json(formatResponse('success', 200, 'A2C agent deleted'));
+  } catch (error: any) {
+    logger.error('Delete A2C agent error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to delete A2C agent'));
+  }
+});
+
+// Get A2C requests
+router.get('/a2c-requests', async (req: Request, res: Response) => {
+  try {
+    const { status, limit = '50' } = req.query;
+
+    let query = db.select({
+      id: a2cRequests.id,
+      trackingId: a2cRequests.trackingId,
+      network: a2cRequests.network,
+      phoneNumber: a2cRequests.phoneNumber,
+      airtimeAmount: a2cRequests.airtimeAmount,
+      conversionRate: a2cRequests.conversionRate,
+      cashAmount: a2cRequests.cashAmount,
+      receivingNumber: a2cRequests.receivingNumber,
+      status: a2cRequests.status,
+      createdAt: a2cRequests.createdAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
+      .from(a2cRequests)
+      .leftJoin(users, eq(a2cRequests.userId, users.id))
+      .orderBy(desc(a2cRequests.createdAt))
+      .limit(parseInt(limit as string));
+
+    let requests;
+    if (status && status !== 'all') {
+      requests = await query.where(eq(a2cRequests.status, status as string));
+    } else {
+      requests = await query;
+    }
+
+    res.json(formatResponse('success', 200, 'A2C requests retrieved', { requests }));
+  } catch (error: any) {
+    logger.error('Get A2C requests error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get A2C requests'));
   }
 });
 

@@ -39,6 +39,8 @@ import IdentityAgentLogin from "@/pages/agent/IdentityAgentLogin";
 import IdentityAgentDashboard from "@/pages/agent/IdentityAgentDashboard";
 import EducationAgentLogin from "@/pages/agent/EducationAgentLogin";
 import EducationAgentDashboard from "@/pages/agent/EducationAgentDashboard";
+import A2CAgentLogin from "@/pages/agent/A2CAgentLogin";
+import A2CAgentDashboard from "@/pages/agent/A2CAgentDashboard";
 import BuyPINs from "@/pages/dashboard/BuyPINs";
 import Profile from "@/pages/dashboard/Profile";
 import Settings from "@/pages/dashboard/Settings";
@@ -60,6 +62,7 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminCACServices from "@/pages/admin/AdminCACServices";
 import AdminIdentityAgents from "@/pages/admin/AdminIdentityAgents";
 import AdminEducationAgents from "@/pages/admin/AdminEducationAgents";
+import AdminA2CAgents from "@/pages/admin/AdminA2CAgents";
 import AdminEducationPins from "@/pages/admin/AdminEducationPins";
 import AdminCRUDLayout from "@/components/layout/AdminCRUDLayout";
 
@@ -73,6 +76,8 @@ function Router() {
       <Route path="/agent/identity/dashboard" component={IdentityAgentDashboard} />
       <Route path="/agent/education" component={EducationAgentLogin} />
       <Route path="/agent/education/dashboard" component={EducationAgentDashboard} />
+      <Route path="/agent/a2c/login" component={A2CAgentLogin} />
+      <Route path="/agent/a2c/dashboard" component={A2CAgentDashboard} />
       
       {/* Admin Routes - outside MainLayout */}
       <Route path="/admin/login" component={AdminLogin} />
@@ -144,6 +149,11 @@ function Router() {
       <Route path="/admin/education-pins">
         <AdminCRUDLayout>
           <AdminEducationPins />
+        </AdminCRUDLayout>
+      </Route>
+      <Route path="/admin/a2c-agents">
+        <AdminCRUDLayout>
+          <AdminA2CAgents />
         </AdminCRUDLayout>
       </Route>
       

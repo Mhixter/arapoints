@@ -508,3 +508,40 @@ export const educationPinOrders = pgTable('education_pin_orders', {
   createdAt: timestamp('created_at').defaultNow(),
   completedAt: timestamp('completed_at'),
 });
+
+// Airtime to Cash Agents
+export const a2cAgents = pgTable('a2c_agents', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  adminUserId: uuid('admin_user_id').references(() => adminUsers.id).unique(),
+  employeeId: varchar('employee_id', { length: 50 }),
+  supportedNetworks: jsonb('supported_networks').default('["mtn", "airtel", "glo", "9mobile"]'),
+  maxActiveRequests: integer('max_active_requests').default(30),
+  currentActiveRequests: integer('current_active_requests').default(0),
+  totalCompletedRequests: integer('total_completed_requests').default(0),
+  totalProcessedAmount: decimal('total_processed_amount', { precision: 15, scale: 2 }).default('0'),
+  isAvailable: boolean('is_available').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Airtime to Cash Requests
+export const a2cRequests = pgTable('a2c_requests', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id).notNull(),
+  trackingId: varchar('tracking_id', { length: 20 }).unique().notNull(),
+  network: varchar('network', { length: 20 }).notNull(), // mtn, airtel, glo, 9mobile
+  phoneNumber: varchar('phone_number', { length: 20 }).notNull(), // User's phone that will send airtime
+  airtimeAmount: decimal('airtime_amount', { precision: 10, scale: 2 }).notNull(),
+  conversionRate: decimal('conversion_rate', { precision: 5, scale: 2 }).notNull(), // e.g., 0.70 for 70%
+  cashAmount: decimal('cash_amount', { precision: 10, scale: 2 }).notNull(), // Amount user will receive
+  receivingNumber: varchar('receiving_number', { length: 20 }).notNull(), // Agent's number to receive airtime
+  status: varchar('status', { length: 30 }).default('pending').notNull(), // pending, awaiting_transfer, confirmed, completed, cancelled, failed
+  assignedAgentId: uuid('assigned_agent_id').references(() => a2cAgents.id),
+  assignedAt: timestamp('assigned_at'),
+  airtimeReceivedAt: timestamp('airtime_received_at'),
+  cashPaidAt: timestamp('cash_paid_at'),
+  customerNotes: text('customer_notes'),
+  agentNotes: text('agent_notes'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
