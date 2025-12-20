@@ -56,16 +56,19 @@ import AdminCRUDLayout from "@/components/layout/AdminCRUDLayout";
 
 function Router() {
   return (
-    <MainLayout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/auth/login" component={Login} />
-        <Route path="/auth/signup" component={Signup} />
-        <Route path="/admin/login" component={AdminLogin} />
-        
-        {/* CAC Agent Routes */}
-        <Route path="/agent/login" component={CACAgentLogin} />
-        <Route path="/agent/dashboard" component={CACAgentDashboard} />
+    <Switch>
+      {/* CAC Agent Routes - outside MainLayout */}
+      <Route path="/agent/login" component={CACAgentLogin} />
+      <Route path="/agent/dashboard" component={CACAgentDashboard} />
+      
+      {/* Main routes with header/footer */}
+      <Route>
+        <MainLayout>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/auth/login" component={Login} />
+            <Route path="/auth/signup" component={Signup} />
+            <Route path="/admin/login" component={AdminLogin} />
         
         {/* Dashboard Routes */}
         <Route path="/dashboard">
@@ -242,9 +245,11 @@ function Router() {
           </AdminCRUDLayout>
         </Route>
 
-        <Route component={NotFound} />
-      </Switch>
-    </MainLayout>
+            <Route component={NotFound} />
+          </Switch>
+        </MainLayout>
+      </Route>
+    </Switch>
   );
 }
 
