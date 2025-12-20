@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, Loader2, Clock, CheckCircle2, XCircle, User, LogOut, FileText, RefreshCw, Eye, MessageCircle, Send, Upload } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Building2, Loader2, Clock, CheckCircle2, XCircle, User, LogOut, FileText, RefreshCw, Eye, MessageCircle, Send, Upload, DollarSign, Settings, Save } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -41,6 +43,10 @@ export default function CACAgentDashboard() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+  const [loadingServiceTypes, setLoadingServiceTypes] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [savingService, setSavingService] = useState(false);
 
   useEffect(() => {
     const token = getAgentToken();
@@ -51,7 +57,54 @@ export default function CACAgentDashboard() {
     fetchProfile();
     fetchStats();
     fetchRequests();
+    fetchServiceTypes();
   }, []);
+
+  const fetchServiceTypes = async () => {
+    setLoadingServiceTypes(true);
+    try {
+      const token = getAgentToken();
+      const response = await fetch('/api/cac-agent/service-types', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        setServiceTypes(data.data.services || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch service types:', error);
+    } finally {
+      setLoadingServiceTypes(false);
+    }
+  };
+
+  const handleUpdateService = async (service: any) => {
+    setSavingService(true);
+    try {
+      const token = getAgentToken();
+      const response = await fetch(`/api/cac-agent/service-types/${service.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          price: service.price,
+          processingDays: service.processingDays,
+          isActive: service.isActive,
+        })
+      });
+      const data = await response.json();
+      if (data.status === 'success') {
+        toast({ title: "Updated!", description: "Service pricing updated successfully." });
+        fetchServiceTypes();
+        setEditingService(null);
+      } else {
+        toast({ title: "Failed", description: data.message, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to update service", variant: "destructive" });
+    } finally {
+      setSavingService(false);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -317,72 +370,186 @@ export default function CACAgentDashboard() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Registration Requests</CardTitle>
-                <CardDescription>Manage CAC registration requests</CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Select value={filter} onValueChange={(val) => { setFilter(val); setTimeout(fetchRequests, 100); }}>
-                  <SelectTrigger className="w-[150px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Requests</SelectItem>
-                    <SelectItem value="mine">My Requests</SelectItem>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="icon" onClick={fetchRequests}>
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-            ) : requests.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <p>No requests found</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {requests.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                        <Building2 className="h-5 w-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{req.businessName}</p>
-                        <p className="text-sm text-muted-foreground">{req.proprietorName} - {req.proprietorPhone}</p>
-                        <p className="text-xs text-muted-foreground capitalize">{req.serviceType?.replace(/_/g, ' ')} | {new Date(req.createdAt).toLocaleDateString()}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(req.status)}
-                      <Button variant="outline" size="sm" onClick={() => openChat(req)} title="Chat with customer">
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleViewDetails(req.id)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {!req.assignedAgentId && (
-                        <Button size="sm" onClick={() => handleAssign(req.id)}>
-                          Assign to Me
-                        </Button>
-                      )}
-                    </div>
+        <Tabs defaultValue="requests">
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
+            <TabsTrigger value="requests" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Requests
+            </TabsTrigger>
+            <TabsTrigger value="pricing" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Price Management
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="requests">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Registration Requests</CardTitle>
+                    <CardDescription>Manage CAC registration requests</CardDescription>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  <div className="flex items-center gap-2">
+                    <Select value={filter} onValueChange={(val) => { setFilter(val); setTimeout(fetchRequests, 100); }}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Requests</SelectItem>
+                        <SelectItem value="mine">My Requests</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" onClick={fetchRequests}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : requests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No requests found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {requests.map((req) => (
+                      <div key={req.id} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                            <Building2 className="h-5 w-5 text-green-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{req.businessName}</p>
+                            <p className="text-sm text-muted-foreground">{req.proprietorName} - {req.proprietorPhone}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{req.serviceType?.replace(/_/g, ' ')} | {new Date(req.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(req.status)}
+                          <Button variant="outline" size="sm" onClick={() => openChat(req)} title="Chat with customer">
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleViewDetails(req.id)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          {!req.assignedAgentId && (
+                            <Button size="sm" onClick={() => handleAssign(req.id)}>
+                              Assign to Me
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pricing">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5" />
+                      Service Pricing
+                    </CardTitle>
+                    <CardDescription>Manage prices and processing times for CAC services</CardDescription>
+                  </div>
+                  <Button variant="outline" size="icon" onClick={fetchServiceTypes}>
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingServiceTypes ? (
+                  <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : serviceTypes.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No service types configured</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {serviceTypes.map((service) => (
+                      <div key={service.id} className="p-4 rounded-lg border">
+                        {editingService?.id === service.id ? (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold">{service.name}</p>
+                                <p className="text-xs text-muted-foreground">{service.code}</p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Label className="text-sm">Active</Label>
+                                <Switch
+                                  checked={editingService.isActive}
+                                  onCheckedChange={(checked) => setEditingService({ ...editingService, isActive: checked })}
+                                />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Price (₦)</Label>
+                                <Input
+                                  type="number"
+                                  value={editingService.price}
+                                  onChange={(e) => setEditingService({ ...editingService, price: e.target.value })}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Processing Days</Label>
+                                <Input
+                                  type="number"
+                                  value={editingService.processingDays}
+                                  onChange={(e) => setEditingService({ ...editingService, processingDays: parseInt(e.target.value) })}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button onClick={() => handleUpdateService(editingService)} disabled={savingService}>
+                                {savingService ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+                                Save Changes
+                              </Button>
+                              <Button variant="outline" onClick={() => setEditingService(null)}>
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold">{service.name}</p>
+                                {!service.isActive && <Badge variant="secondary">Inactive</Badge>}
+                              </div>
+                              <p className="text-sm text-muted-foreground">{service.description || service.code}</p>
+                            </div>
+                            <div className="flex items-center gap-6">
+                              <div className="text-right">
+                                <p className="text-xl font-bold text-primary">₦{parseInt(service.price).toLocaleString()}</p>
+                                <p className="text-xs text-muted-foreground">{service.processingDays} days processing</p>
+                              </div>
+                              <Button variant="outline" size="sm" onClick={() => setEditingService({ ...service })}>
+                                Edit
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
