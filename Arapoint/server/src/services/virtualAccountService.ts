@@ -19,13 +19,13 @@ export const virtualAccountService = {
     return payvesselService.isConfigured();
   },
 
-  async generateVirtualAccountForUser(userId: string): Promise<VirtualAccountResult> {
+  async generateVirtualAccountForUser(userId: string, nin?: string, bvn?: string): Promise<VirtualAccountResult> {
     const existingAccount = await db.select()
       .from(virtualAccounts)
       .where(eq(virtualAccounts.userId, userId))
       .limit(1);
 
-    if (existingAccount.length > 0 && existingAccount[0].accountNumber) {
+    if (existingAccount.length > 0 && existingAccount[0].accountNumber && existingAccount[0].providerSlug === 'payvessel') {
       return {
         success: true,
         account: {
@@ -50,99 +50,76 @@ export const virtualAccountService = {
     }
 
     const user = userResult[0];
+    const userNin = nin || user.nin;
+    const userBvn = bvn || user.bvn;
 
-    // Try PayVessel if configured and user has KYC verification
-    if (payvesselService.isConfigured() && (user.nin || user.bvn)) {
-      const result = await payvesselService.createVirtualAccount({
-        email: user.email,
-        name: user.name,
-        phoneNumber: user.phone || '08000000000',
-        bvn: user.bvn || undefined,
-        nin: user.nin || undefined,
-      });
-
-      if (result.success && result.account) {
-        await db.insert(virtualAccounts).values({
-          userId: userId,
-          bankName: result.account.bankName,
-          bankCode: '120001',
-          accountNumber: result.account.accountNumber,
-          accountName: result.account.accountName,
-          dedicatedAccountId: result.account.trackingReference,
-          providerSlug: 'payvessel',
-          isActive: true,
-        }).onConflictDoUpdate({
-          target: virtualAccounts.userId,
-          set: {
-            bankName: result.account.bankName,
-            bankCode: '120001',
-            accountNumber: result.account.accountNumber,
-            accountName: result.account.accountName,
-            dedicatedAccountId: result.account.trackingReference,
-            providerSlug: 'payvessel',
-            isActive: true,
-            updatedAt: new Date(),
-          },
-        });
-
-        logger.info('Virtual account created via Payvessel', { 
-          userId, 
-          accountNumber: result.account.accountNumber,
-          trackingReference: result.account.trackingReference,
-        });
-
-        return {
-          success: true,
-          account: {
-            bankName: result.account.bankName,
-            accountNumber: result.account.accountNumber,
-            accountName: result.account.accountName,
-          },
-          message: 'Virtual account created successfully',
-        };
-      }
+    // PayVessel account is ONLY created after NIN/BVN verification
+    if (!payvesselService.isConfigured()) {
+      return {
+        success: false,
+        message: 'Payment gateway not configured. Please contact support.',
+      };
     }
 
-    // Fallback: Generate a temporary account number for unverified users
-    const tempAccountNumber = `90${Date.now().toString().slice(-11)}`.slice(0, 12);
-    const accountName = `${user.name} - Arapoint`;
+    if (!userNin && !userBvn) {
+      return {
+        success: false,
+        message: 'NIN or BVN verification is required to generate a virtual account. Please complete KYC verification first.',
+      };
+    }
+
+    const result = await payvesselService.createVirtualAccount({
+      email: user.email,
+      name: user.name,
+      phoneNumber: user.phone || '08000000000',
+      bvn: userBvn || undefined,
+      nin: userNin || undefined,
+    });
+
+    if (!result.success || !result.account) {
+      return {
+        success: false,
+        message: result.error || 'Failed to generate virtual account. Please try again later.',
+      };
+    }
 
     await db.insert(virtualAccounts).values({
       userId: userId,
-      bankName: '9Payment Service Bank',
+      bankName: result.account.bankName,
       bankCode: '120001',
-      accountNumber: tempAccountNumber,
-      accountName: accountName,
-      dedicatedAccountId: `temp-${userId}`,
-      providerSlug: 'temporary',
+      accountNumber: result.account.accountNumber,
+      accountName: result.account.accountName,
+      dedicatedAccountId: result.account.trackingReference,
+      providerSlug: 'payvessel',
       isActive: true,
     }).onConflictDoUpdate({
       target: virtualAccounts.userId,
       set: {
-        bankName: '9Payment Service Bank',
+        bankName: result.account.bankName,
         bankCode: '120001',
-        accountNumber: tempAccountNumber,
-        accountName: accountName,
-        dedicatedAccountId: `temp-${userId}`,
-        providerSlug: 'temporary',
+        accountNumber: result.account.accountNumber,
+        accountName: result.account.accountName,
+        dedicatedAccountId: result.account.trackingReference,
+        providerSlug: 'payvessel',
         isActive: true,
         updatedAt: new Date(),
       },
     });
 
-    logger.info('Temporary virtual account created (awaiting KYC)', { 
+    logger.info('Virtual account created via Payvessel', { 
       userId, 
-      accountNumber: tempAccountNumber,
+      accountNumber: result.account.accountNumber,
+      trackingReference: result.account.trackingReference,
     });
 
     return {
       success: true,
       account: {
-        bankName: '9Payment Service Bank',
-        accountNumber: tempAccountNumber,
-        accountName: accountName,
+        bankName: result.account.bankName,
+        accountNumber: result.account.accountNumber,
+        accountName: result.account.accountName,
       },
-      message: 'Temporary virtual account created. Complete KYC verification to enable full functionality.',
+      message: 'Virtual account created successfully',
     };
   },
 
@@ -192,7 +169,7 @@ export const virtualAccountService = {
         return {
           configured: true,
           requiresKyc: true,
-          message: 'Please verify your NIN or BVN to generate a virtual account',
+          message: 'Please complete NIN or BVN verification to generate a virtual account. Submit your NIN to proceed.',
         };
       }
     }
@@ -200,7 +177,7 @@ export const virtualAccountService = {
     return {
       configured: true,
       shouldGenerate: true,
-      message: 'Virtual account not yet generated',
+      message: 'Virtual account generation pending. Please contact support if you have verified your identity.',
     };
   },
 

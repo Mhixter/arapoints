@@ -3,6 +3,7 @@ import { authMiddleware } from '../middleware/auth';
 import { walletService } from '../../services/walletService';
 import { youverifyService } from '../../services/youverifyService';
 import { premblyService } from '../../services/premblyService';
+import { virtualAccountService } from '../../services/virtualAccountService';
 import { generateNINSlip } from '../../utils/slipGenerator';
 import { ninLookupSchema, ninPhoneSchema, lostNinSchema } from '../validators/identity';
 import { logger } from '../../utils/logger';
@@ -143,6 +144,27 @@ router.post('/nin', async (req: Request, res: Response) => {
       verificationData: result.data,
     });
 
+    // Auto-generate PayVessel virtual account after successful NIN verification
+    let virtualAccount = null;
+    try {
+      const accountResult = await virtualAccountService.generateVirtualAccountForUser(
+        req.userId!,
+        validation.data.nin
+      );
+      if (accountResult.success && accountResult.account) {
+        virtualAccount = accountResult.account;
+        logger.info('Virtual account auto-generated after NIN verification', { 
+          userId: req.userId, 
+          accountNumber: virtualAccount.accountNumber 
+        });
+      }
+    } catch (error: any) {
+      logger.error('Failed to auto-generate virtual account after NIN verification', { 
+        userId: req.userId, 
+        error: error.message 
+      });
+    }
+
     logger.info('NIN lookup successful', { userId: req.userId, reference: result.reference });
 
     res.json(formatResponse('success', 200, 'NIN verification successful', {
@@ -164,6 +186,12 @@ router.post('/nin', async (req: Request, res: Response) => {
         html: slip.html,
         generatedAt: slip.generatedAt,
       },
+      virtualAccount: virtualAccount ? {
+        bankName: virtualAccount.bankName,
+        accountNumber: virtualAccount.accountNumber,
+        accountName: virtualAccount.accountName,
+        message: 'Your PayVessel virtual account has been automatically generated!'
+      } : null,
       price,
     }));
   } catch (error: any) {
