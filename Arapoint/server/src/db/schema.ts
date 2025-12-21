@@ -524,6 +524,22 @@ export const a2cAgents = pgTable('a2c_agents', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// Airtime to Cash Phone Inventory - Numbers customers send airtime to
+export const a2cPhoneInventory = pgTable('a2c_phone_inventory', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  agentId: uuid('agent_id').references(() => a2cAgents.id).notNull(),
+  phoneNumber: varchar('phone_number', { length: 20 }).notNull(),
+  network: varchar('network', { length: 20 }).notNull(), // mtn, airtel, glo, 9mobile
+  dailyLimit: decimal('daily_limit', { precision: 15, scale: 2 }).default('500000'), // Max airtime per day
+  usedToday: decimal('used_today', { precision: 15, scale: 2 }).default('0'), // Amount used today
+  lastResetDate: timestamp('last_reset_date').defaultNow(),
+  priority: integer('priority').default(1), // For round-robin selection
+  isActive: boolean('is_active').default(true),
+  label: varchar('label', { length: 100 }), // Optional friendly name
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Airtime to Cash Requests
 export const a2cRequests = pgTable('a2c_requests', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
@@ -534,14 +550,35 @@ export const a2cRequests = pgTable('a2c_requests', {
   airtimeAmount: decimal('airtime_amount', { precision: 10, scale: 2 }).notNull(),
   conversionRate: decimal('conversion_rate', { precision: 5, scale: 2 }).notNull(), // e.g., 0.70 for 70%
   cashAmount: decimal('cash_amount', { precision: 10, scale: 2 }).notNull(), // Amount user will receive
+  inventoryId: uuid('inventory_id').references(() => a2cPhoneInventory.id), // Link to inventory number
   receivingNumber: varchar('receiving_number', { length: 20 }).notNull(), // Agent's number to receive airtime
-  status: varchar('status', { length: 30 }).default('pending').notNull(), // pending, awaiting_transfer, confirmed, completed, cancelled, failed
+  // User's bank details for payment
+  bankName: varchar('bank_name', { length: 100 }),
+  accountNumber: varchar('account_number', { length: 20 }),
+  accountName: varchar('account_name', { length: 255 }),
+  // Status: pending -> airtime_sent -> airtime_received -> processing -> completed/rejected
+  status: varchar('status', { length: 30 }).default('pending').notNull(),
   assignedAgentId: uuid('assigned_agent_id').references(() => a2cAgents.id),
   assignedAt: timestamp('assigned_at'),
+  userConfirmedAt: timestamp('user_confirmed_at'), // When user clicks "I've sent"
   airtimeReceivedAt: timestamp('airtime_received_at'),
   cashPaidAt: timestamp('cash_paid_at'),
   customerNotes: text('customer_notes'),
   agentNotes: text('agent_notes'),
+  rejectionReason: text('rejection_reason'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Airtime to Cash Status History - For audit trail
+export const a2cStatusHistory = pgTable('a2c_status_history', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  requestId: uuid('request_id').references(() => a2cRequests.id).notNull(),
+  actorType: varchar('actor_type', { length: 20 }).notNull(), // user, agent, admin, system
+  actorId: uuid('actor_id'),
+  previousStatus: varchar('previous_status', { length: 30 }),
+  newStatus: varchar('new_status', { length: 30 }).notNull(),
+  note: text('note'),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow(),
 });
