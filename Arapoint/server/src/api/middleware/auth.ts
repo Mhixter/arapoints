@@ -13,9 +13,19 @@ declare global {
 
 export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const authHeader = req.headers.authorization;
     
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        status: 'error',
+        code: 401,
+        message: 'No token provided',
+      });
+    }
+    
+    const token = authHeader.slice(7); // Extract token after 'Bearer '
+    
+    if (!token || token.trim() === '') {
       return res.status(401).json({
         status: 'error',
         code: 401,
