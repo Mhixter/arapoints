@@ -8,24 +8,42 @@ import { Link, useLocation } from "wouter";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import arapointLogo from "@assets/generated_images/arapoint_logo_-_security_shield_with_checkmark.png";
+import axios from "axios";
 
 export default function AdminLogin() {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    
+    try {
+      const response = await axios.post('/api/auth/login', { email, password });
+      const { accessToken, refreshToken } = response.data.data;
+      
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('adminToken', accessToken);
+      
       toast({
         title: "Welcome Admin!",
         description: "Successfully logged in to admin panel.",
       });
       setLocation("/admin");
-    }, 1500);
+    } catch (error: any) {
+      toast({
+        title: "Login failed",
+        description: error.response?.data?.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -66,7 +84,15 @@ export default function AdminLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="admin-email">Admin Email</Label>
-              <Input id="admin-email" type="email" placeholder="admin@arapoint.com" required className="h-11" />
+              <Input 
+                id="admin-email" 
+                type="email" 
+                placeholder="admin@arapoint.com" 
+                required 
+                className="h-11"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -82,6 +108,8 @@ export default function AdminLogin() {
                   required 
                   className="h-11 pr-10" 
                   data-testid="input-admin-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <button
                   type="button"
