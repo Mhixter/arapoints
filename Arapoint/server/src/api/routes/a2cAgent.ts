@@ -305,13 +305,6 @@ router.put('/requests/:id/status', a2cAgentAuthMiddleware, async (req: Request, 
     if (status === 'confirmed') updateData.airtimeReceivedAt = new Date();
     if (status === 'completed') {
       updateData.cashPaidAt = new Date();
-      await walletService.addBalance(
-        request.userId,
-        parseFloat(request.cashAmount),
-        `Airtime to Cash - ${request.network.toUpperCase()} ${request.airtimeAmount}`,
-        'a2c_credit'
-      );
-
       await db.update(a2cAgents)
         .set({
           totalCompletedRequests: sql`${a2cAgents.totalCompletedRequests} + 1`,
@@ -637,13 +630,6 @@ router.patch('/requests/:id/update-status', a2cAgentAuthMiddleware, async (req: 
     
     if (status === 'completed' || status === 'completed_and_paid') {
       updateData.cashPaidAt = new Date();
-      await walletService.addBalance(
-        request.userId,
-        parseFloat(request.cashAmount),
-        `Airtime to Cash - ${request.network.toUpperCase()} ₦${request.airtimeAmount}`,
-        'a2c_credit'
-      );
-
       await db.update(a2cAgents)
         .set({
           totalCompletedRequests: sql`${a2cAgents.totalCompletedRequests} + 1`,
