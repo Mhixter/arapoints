@@ -66,10 +66,24 @@ interface A2CRequest {
   cashPaidAt: string | null;
   rejectionReason: string | null;
   createdAt: string;
+  updatedAt?: string;
+}
+
+interface StatusHistory {
+  id: string;
+  requestId: string;
+  actorType: string;
+  previousStatus: string;
+  newStatus: string;
+  note: string | null;
+  createdAt: string;
 }
 
 const STATUS_BADGES: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  pending: { label: "Pending", variant: "secondary" },
+  pending: { label: "Pending Confirmation", variant: "secondary" },
+  pending_confirmation: { label: "Pending Confirmation", variant: "secondary" },
+  completed_and_paid: { label: "Completed & Paid", variant: "default" },
+  not_received_contact_support: { label: "Not Received - Contact Support", variant: "destructive" },
   airtime_sent: { label: "Airtime Sent", variant: "outline" },
   airtime_received: { label: "Received", variant: "default" },
   processing: { label: "Processing", variant: "default" },
@@ -93,6 +107,9 @@ export default function AirtimeToCash() {
   const [requests, setRequests] = useState<A2CRequest[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [activeTab, setActiveTab] = useState("convert");
+  const [selectedRequestDetail, setSelectedRequestDetail] = useState<A2CRequest | null>(null);
+  const [requestHistory, setRequestHistory] = useState<StatusHistory[]>([]);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
   const { toast } = useToast();
 
   const selectedNetworkData = NETWORKS.find(n => n.id === selectedNetwork);
@@ -202,7 +219,8 @@ export default function AirtimeToCash() {
 
       setCurrentRequest({
         ...data.data,
-        requestId: data.data?.id,
+        id: data.data?.requestId || data.data?.id,
+        requestId: data.data?.requestId || data.data?.id,
       });
       setShowConfirmDialog(true);
 
@@ -218,12 +236,16 @@ export default function AirtimeToCash() {
   };
 
   const handleConfirmSent = async () => {
-    if (!currentRequest?.trackingId) return;
+    if (!currentRequest?.id && !currentRequest?.trackingId) return;
 
     setIsConfirming(true);
     try {
       const token = localStorage.getItem('accessToken');
-      const requestId = requests.find(r => r.trackingId === currentRequest.trackingId)?.id || currentRequest.requestId;
+      const requestId = currentRequest?.id || currentRequest?.requestId || requests.find(r => r.trackingId === currentRequest.trackingId)?.id;
+      
+      if (!requestId) {
+        throw new Error('Request ID not found');
+      }
       
       const response = await fetch(`/api/airtime/to-cash/${requestId}/confirm-sent`, {
         method: 'POST',
@@ -451,7 +473,14 @@ export default function AirtimeToCash() {
                     {requests.map((request) => {
                       const statusInfo = STATUS_BADGES[request.status] || STATUS_BADGES.pending;
                       return (
-                        <Card key={request.id} className="p-3 border">
+                        <Card 
+                          key={request.id} 
+                          className="p-3 border cursor-pointer hover:bg-muted/50 transition"
+                          onClick={() => {
+                            setSelectedRequestDetail(request);
+                            setShowDetailDialog(true);
+                          }}
+                        >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -556,6 +585,87 @@ export default function AirtimeToCash() {
               I've Sent It
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+        <DialogContent className="max-w-[340px] sm:max-w-md p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Request Details</DialogTitle>
+            <DialogDescription className="text-sm">
+              {selectedRequestDetail?.trackingId}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRequestDetail && (
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Status</p>
+                  <Badge variant={STATUS_BADGES[selectedRequestDetail.status]?.variant || "secondary"} className="mt-1">
+                    {STATUS_BADGES[selectedRequestDetail.status]?.label || selectedRequestDetail.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Network</p>
+                  <p className="font-semibold">{selectedRequestDetail.network.toUpperCase()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Amount Sent</p>
+                  <p className="font-semibold">₦{parseFloat(selectedRequestDetail.airtimeAmount).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">You'll Receive</p>
+                  <p className="font-semibold text-green-600">₦{parseFloat(selectedRequestDetail.cashAmount).toLocaleString()}</p>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <p className="text-sm font-semibold mb-3">Bank Details</p>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Bank:</span>
+                    <span className="font-medium">{selectedRequestDetail.bankName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Account:</span>
+                    <span className="font-mono">{selectedRequestDetail.accountNumber}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Name:</span>
+                    <span className="font-medium">{selectedRequestDetail.accountName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedRequestDetail.rejectionReason && (
+                <Alert variant="destructive" className="border-red-200">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    {selectedRequestDetail.rejectionReason}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="border-t pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Created: {new Date(selectedRequestDetail.createdAt).toLocaleString()}
+                </p>
+                {selectedRequestDetail.updatedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Updated: {new Date(selectedRequestDetail.updatedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          <Button 
+            onClick={() => setShowDetailDialog(false)}
+            className="w-full"
+          >
+            Close
+          </Button>
         </DialogContent>
       </Dialog>
 

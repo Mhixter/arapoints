@@ -233,6 +233,7 @@ router.post('/to-cash', async (req: Request, res: Response) => {
     });
 
     res.json(formatResponse('success', 200, 'Request created successfully', {
+      requestId: newRequest.id,
       trackingId,
       network: network.toUpperCase(),
       amount,
