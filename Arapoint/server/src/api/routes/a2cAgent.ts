@@ -614,7 +614,8 @@ router.patch('/requests/:id/update-status', a2cAgentAuthMiddleware, async (req: 
     }
 
     const validTransitions: Record<string, string[]> = {
-      pending: ['cancelled'],
+      pending: ['completed_and_paid', 'not_received_contact_support', 'cancelled'],
+      pending_confirmation: ['completed_and_paid', 'not_received_contact_support', 'cancelled'],
       airtime_sent: ['airtime_received', 'rejected'],
       airtime_received: ['processing', 'rejected'],
       processing: ['completed', 'rejected'],
@@ -632,8 +633,9 @@ router.patch('/requests/:id/update-status', a2cAgentAuthMiddleware, async (req: 
     if (agentNotes) updateData.agentNotes = agentNotes;
     if (status === 'airtime_received') updateData.airtimeReceivedAt = new Date();
     if (status === 'rejected') updateData.rejectionReason = rejectionReason || 'No reason provided';
+    if (status === 'not_received_contact_support') updateData.rejectionReason = rejectionReason || 'Not received - contact support';
     
-    if (status === 'completed') {
+    if (status === 'completed' || status === 'completed_and_paid') {
       updateData.cashPaidAt = new Date();
       await walletService.addBalance(
         request.userId,

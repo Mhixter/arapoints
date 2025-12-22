@@ -21,7 +21,10 @@ import {
 const getToken = () => localStorage.getItem('a2cAgentToken');
 
 const STATUS_LABELS: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: 'Pending', color: 'bg-gray-100 text-gray-700', icon: Clock },
+  pending: { label: 'Pending Confirmation', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  pending_confirmation: { label: 'Pending Confirmation', color: 'bg-yellow-100 text-yellow-700', icon: Clock },
+  completed_and_paid: { label: 'Completed & Paid', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+  not_received_contact_support: { label: 'Not Received - Contact Support', color: 'bg-red-100 text-red-700', icon: AlertCircle },
   airtime_sent: { label: 'Airtime Sent', color: 'bg-yellow-100 text-yellow-700', icon: ArrowDownCircle },
   airtime_received: { label: 'Received', color: 'bg-blue-100 text-blue-700', icon: CheckCircle },
   processing: { label: 'Processing', color: 'bg-purple-100 text-purple-700', icon: Loader2 },
@@ -253,6 +256,8 @@ export default function A2CAgentDashboard() {
 
   const getNextStatuses = (currentStatus: string) => {
     const transitions: Record<string, string[]> = {
+      pending: ['completed_and_paid', 'not_received_contact_support'],
+      pending_confirmation: ['completed_and_paid', 'not_received_contact_support'],
       airtime_sent: ['airtime_received', 'rejected'],
       airtime_received: ['processing', 'rejected'],
       processing: ['completed', 'rejected'],
