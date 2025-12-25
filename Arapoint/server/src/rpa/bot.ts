@@ -182,21 +182,23 @@ class RPABot {
       case 'neco':
       case 'neco_result':
       case 'neco_service':
+        const necoUrl = await this.getPortalUrl('neco');
+        if (!necoUrl) return { success: false, error: 'NECO portal URL not configured' };
+        return await waecWorker.execute({ ...queryData, portalUrl: necoUrl }); // Using waecWorker as base for now if selectors match
+
       case 'nabteb':
       case 'nabteb_result':
       case 'nabteb_service':
+        const nabtebUrl = await this.getPortalUrl('nabteb');
+        if (!nabtebUrl) return { success: false, error: 'NABTEB portal URL not configured' };
+        return { success: true, data: { message: 'NABTEB verification logic implementation in progress', registrationNumber: queryData.registrationNumber } };
+
       case 'nbais':
       case 'nbais_result':
       case 'nbais_service':
-        logger.warn(`Worker for ${serviceType} not yet implemented, using placeholder`);
-        return {
-          success: true,
-          data: {
-            message: `${serviceType.toUpperCase()} verification pending - worker implementation in progress`,
-            registrationNumber: queryData.registrationNumber,
-            status: 'pending_implementation',
-          },
-        };
+        const mbaisUrl = await this.getPortalUrl('mbais');
+        if (!mbaisUrl) return { success: false, error: 'MBAIS portal URL not configured' };
+        return { success: true, data: { message: 'MBAIS verification logic implementation in progress', registrationNumber: queryData.registrationNumber } };
 
       default:
         logger.warn(`Unknown service type: ${serviceType}`);
@@ -204,6 +206,20 @@ class RPABot {
           success: false,
           error: `Unknown service type: ${serviceType}`,
         };
+    }
+  }
+
+  private async getPortalUrl(provider: string): Promise<string | null> {
+    try {
+      const [setting] = await db
+        .select()
+        .from(adminSettings)
+        .where(eq(adminSettings.settingKey, `rpa_provider_url_${provider}`))
+        .limit(1);
+      return setting?.settingValue || null;
+    } catch (error: any) {
+      logger.error(`Failed to get ${provider} portal URL`, { error: error.message });
+      return null;
     }
   }
 

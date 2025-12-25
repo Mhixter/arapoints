@@ -25,11 +25,18 @@ export default function AdminSettings() {
     maxLoginAttempts: "5",
     currency: "NGN",
     timezone: "Africa/Lagos",
-    waecUrl: "https://www.waecdirect.org",
-    necoUrl: "https://results.neco.gov.ng",
-    nabtebUrl: "https://eworld.nabteb.gov.ng",
-    mbaisUrl: "https://result.mbais.gov.ng",
+    waecUrl: "",
+    necoUrl: "",
+    nabtebUrl: "",
+    mbaisUrl: "",
   });
+
+  const settingsMap: Record<string, string> = {
+    waecUrl: 'rpa_provider_url_waec',
+    necoUrl: 'rpa_provider_url_neco',
+    nabtebUrl: 'rpa_provider_url_nabteb',
+    mbaisUrl: 'rpa_provider_url_mbais',
+  };
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -43,7 +50,16 @@ export default function AdminSettings() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.data) {
-            setSettings(prev => ({ ...prev, ...data.data }));
+            const mappedSettings: any = {};
+            Object.entries(settingsMap).forEach(([localKey, dbKey]) => {
+              if (data.data[dbKey]) mappedSettings[localKey] = data.data[dbKey];
+            });
+            // Also include other non-mapped settings
+            Object.entries(data.data).forEach(([key, value]) => {
+              const reverseMap = Object.entries(settingsMap).find(([_, dbKey]) => dbKey === key);
+              if (!reverseMap) mappedSettings[key] = value;
+            });
+            setSettings(prev => ({ ...prev, ...mappedSettings }));
           }
         }
       } catch (err) {
@@ -56,13 +72,22 @@ export default function AdminSettings() {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('accessToken');
+      const payload: any = { ...settings };
+      // Map local keys to DB keys for RPA URLs
+      Object.entries(settingsMap).forEach(([localKey, dbKey]) => {
+        if (payload[localKey]) {
+          payload[dbKey] = payload[localKey];
+          delete payload[localKey];
+        }
+      });
+
       const response = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(settings)
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) throw new Error('Failed to save settings');
