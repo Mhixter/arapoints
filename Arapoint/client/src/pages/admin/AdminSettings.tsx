@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,59 @@ export default function AdminSettings() {
     maxLoginAttempts: "5",
     currency: "NGN",
     timezone: "Africa/Lagos",
+    waecUrl: "https://www.waecdirect.org",
+    necoUrl: "https://results.neco.gov.ng",
+    nabtebUrl: "https://eworld.nabteb.gov.ng",
+    mbaisUrl: "https://result.mbais.gov.ng",
   });
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your settings have been updated successfully.",
-    });
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch('/api/admin/settings', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setSettings(prev => ({ ...prev, ...data.data }));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch settings', err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(settings)
+      });
+      
+      if (!response.ok) throw new Error('Failed to save settings');
+
+      toast({
+        title: "Settings Saved",
+        description: "Your settings have been updated successfully.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -54,6 +100,10 @@ export default function AdminSettings() {
           <TabsTrigger value="security" className="gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
             <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
             <span className="hidden xs:inline sm:inline">Security</span>
+          </TabsTrigger>
+          <TabsTrigger value="education" className="gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
+            <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline sm:inline">Education RPA</span>
           </TabsTrigger>
           <TabsTrigger value="advanced" className="gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm">
             <Database className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -225,6 +275,59 @@ export default function AdminSettings() {
                     type="number"
                     value={settings.maxLoginAttempts}
                     onChange={(e) => setSettings(prev => ({ ...prev, maxLoginAttempts: e.target.value }))}
+                    className="h-8 sm:h-9 text-sm"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="education" className="space-y-4 sm:space-y-6">
+          <Card>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Education RPA Configuration</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Configure portal URLs for result checking bots</CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 sm:p-6 pt-0 space-y-4 sm:space-y-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="waec-url" className="text-xs sm:text-sm">WAEC Portal URL</Label>
+                  <Input
+                    id="waec-url"
+                    placeholder="https://www.waecdirect.org"
+                    value={settings.waecUrl || ""}
+                    onChange={(e) => setSettings(prev => ({ ...prev, waecUrl: e.target.value }))}
+                    className="h-8 sm:h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="neco-url" className="text-xs sm:text-sm">NECO Portal URL</Label>
+                  <Input
+                    id="neco-url"
+                    placeholder="https://results.neco.gov.ng"
+                    value={settings.necoUrl || ""}
+                    onChange={(e) => setSettings(prev => ({ ...prev, necoUrl: e.target.value }))}
+                    className="h-8 sm:h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="nabteb-url" className="text-xs sm:text-sm">NABTEB Portal URL</Label>
+                  <Input
+                    id="nabteb-url"
+                    placeholder="https://eworld.nabteb.gov.ng"
+                    value={settings.nabtebUrl || ""}
+                    onChange={(e) => setSettings(prev => ({ ...prev, nabtebUrl: e.target.value }))}
+                    className="h-8 sm:h-9 text-sm"
+                  />
+                </div>
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Label htmlFor="mbais-url" className="text-xs sm:text-sm">MBAIS Portal URL</Label>
+                  <Input
+                    id="mbais-url"
+                    placeholder="https://result.mbais.gov.ng"
+                    value={settings.mbaisUrl || ""}
+                    onChange={(e) => setSettings(prev => ({ ...prev, mbaisUrl: e.target.value }))}
                     className="h-8 sm:h-9 text-sm"
                   />
                 </div>

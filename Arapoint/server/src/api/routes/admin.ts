@@ -463,30 +463,51 @@ router.get('/services', async (req: Request, res: Response) => {
   }
 });
 
-router.put('/services/:id', async (req: Request, res: Response) => {
+router.post('/settings', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const { status, price } = req.body;
+    const settings = req.body;
+    
+    // Update or insert each setting
+    for (const [key, value] of Object.entries(settings)) {
+      await db.insert(adminSettings)
+        .values({
+          settingKey: key,
+          settingValue: typeof value === 'string' ? value : JSON.stringify(value),
+          updatedAt: new Date()
+        })
+        .onConflictDoUpdate({
+          target: adminSettings.settingKey,
+          set: {
+            settingValue: typeof value === 'string' ? value : JSON.stringify(value),
+            updatedAt: new Date()
+          }
+        });
+    }
 
-    const [updated] = await db.update(servicePricing)
-      .set({ 
-        isActive: status === 'active',
-        price: price?.toString(),
-        updatedAt: new Date()
-      })
-      .where(eq(servicePricing.serviceType, id))
-      .returning();
-
-    logger.info('Service updated', { serviceId: id, status, price, userId: req.userId });
-
-    res.json(formatResponse('success', 200, 'Service updated successfully', {
-      id,
-      status,
-      price,
-    }));
+    res.json(formatResponse('success', 200, 'Settings updated successfully'));
   } catch (error: any) {
-    logger.error('Update service error', { error: error.message });
-    res.status(500).json(formatErrorResponse(500, 'Failed to update service'));
+    logger.error('Update settings error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to update settings'));
+  }
+});
+
+router.get('/settings', async (req: Request, res: Response) => {
+  try {
+    const settingsList = await db.select().from(adminSettings);
+    const settings: Record<string, any> = {};
+    
+    settingsList.forEach(s => {
+      try {
+        settings[s.settingKey] = JSON.parse(s.settingValue || "");
+      } catch {
+        settings[s.settingKey] = s.settingValue;
+      }
+    });
+
+    res.json(formatResponse('success', 200, 'Settings retrieved', settings));
+  } catch (error: any) {
+    logger.error('Get settings error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get settings'));
   }
 });
 
