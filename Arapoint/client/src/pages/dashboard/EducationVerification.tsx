@@ -27,6 +27,9 @@ export default function EducationVerification() {
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [jambYear, setJambYear] = useState(currentYear.toString());
+  const [examType, setExamType] = useState("school_candidate");
+  const [examYear, setExamYear] = useState(currentYear.toString());
+  const [token, setToken] = useState("");
 
   const pollJobStatus = async (jobId: string): Promise<any> => {
     const maxAttempts = 60;
@@ -125,6 +128,45 @@ export default function EducationVerification() {
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 border-t pt-4">
+                      <div className="space-y-2">
+                        <Label>Exam Type *</Label>
+                        <Select value={examType} onValueChange={setExamType}>
+                          <SelectTrigger className="h-10 sm:h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="school_candidate">School Candidate (Internal)</SelectItem>
+                            <SelectItem value="private_candidate">Private Candidate (GCE)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Exam Year *</Label>
+                        <Select value={examYear} onValueChange={setExamYear}>
+                          <SelectTrigger className="h-10 sm:h-11">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({length: 20}, (_, i) => currentYear - i).map(year => (
+                              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Scratch Card PIN / Token *</Label>
+                      <Input 
+                        value={token} 
+                        onChange={(e) => setToken(e.target.value)}
+                        placeholder="Enter PIN or Token"
+                        className="h-10 sm:h-11"
+                        required
+                      />
                     </div>
 
                     <Button type="submit" size="lg" disabled={isLoading} className="w-full">

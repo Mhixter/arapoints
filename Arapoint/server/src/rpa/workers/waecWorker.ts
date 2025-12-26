@@ -40,8 +40,9 @@ export class WAECWorker extends BaseWorker {
     examYearSelect: 'select[name="ExamYear"], select[name="examYear"], select#ExamYear, select#examYear, select[name="exam_year"]',
     examTypeSelect: 'select[name="ExamType"], select[name="examType"], select#ExamType, select#examType, select[name="exam_type"]',
     examNumberInput: 'input[name="ExamNumber"], input[name="examnumber"], input[name="CandNo"], input[name="examNumber"], input#ExamNumber, input#examnumber, input#CandNo, input#examNumber, input[name="exam_no"], input[name="registrationNumber"], input[name="exam_year_no"], input[placeholder*="Registration"], input[placeholder*="Examination Number"], input[name="reg_no"], input[name="regNumber"], input[name="exam_no"]',
-    cardSerialInput: 'input[name="SerialNumber"], input[name="serialNumber"], input[name="Serial"], input#SerialNumber, input#serialNumber, input#Serial, input[name="serial_no"], input[name="serial"], input[name="token"], input[name="cardSerialNumber"]',
+    cardSerialInput: "input[name=\"token\"], input[name=\"cardToken\"], input#token, input#cardToken, input[name=\"SerialNumber\"], input[name=\"serialNumber\"], input[name=\"Serial\"], input#SerialNumber, input#serialNumber, input#Serial",
     cardPinInput: 'input[name="Pin"], input[name="pin"], input[name="PIN"], input#Pin, input#pin, input#PIN, input[name="pin_no"], input[name="pin"], input[name="cardPin"]',
+    tokenInput: "input[name=\"token\"], input[name=\"cardToken\"], input#token, input#cardToken",
     submitButton: "button:not([value*=\"Purchase\"]):not([id*=\"purchase\"]):not([class*=\"purchase\"]):contains(\"Check\"), button:not([value*=\"Purchase\"]):not([id*=\"purchase\"]):not([class*=\"purchase\"]):contains(\"Result\"), input[type=\"submit\"]:not([value*=\"Purchase\"]), button[type=\"submit\"]:not([value*=\"Purchase\"])",
     resultTable: 'table.resultTable, table#resultTable, .result-table, table',
     candidateName: '.candidate-name, .name, td:contains("Name")+td',
@@ -292,7 +293,7 @@ export class WAECWorker extends BaseWorker {
       }
     }
 
-    const examTypeToSelect = data.examType || 'WASSCE';
+    const examTypeToSelect = data.examType || "WASSCE";
     logger.info('Attempting to select exam type', { requestedType: examTypeToSelect, provider });
     
     try {
