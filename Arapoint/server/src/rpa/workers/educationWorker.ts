@@ -300,15 +300,22 @@ export class EducationWorker extends BaseWorker {
 
     await this.selectExamYear(page, data.examYear);
     await this.selectExamType(page, data.examType || this.profile.defaultExamType);
-    await this.fillRegistrationNumber(page, data.registrationNumber, selectors);
     
-    if (data.cardSerialNumber && this.profile.requiresSerial) {
-      await this.fillField(page, selectors.serialInput, data.cardSerialNumber, 'serial number');
-    }
-    
-    if (data.cardPin) {
-      const pinSelector = this.profile.usesToken ? selectors.tokenInput : selectors.pinInput;
-      await this.fillField(page, pinSelector, data.cardPin, this.profile.usesToken ? 'token' : 'PIN');
+    if (this.profile.usesToken) {
+      if (data.cardPin) {
+        await this.fillField(page, selectors.tokenInput, data.cardPin, 'token');
+      } else {
+        logger.warn('Token required for NECO but not provided');
+      }
+      await this.fillRegistrationNumber(page, data.registrationNumber, selectors);
+    } else {
+      await this.fillRegistrationNumber(page, data.registrationNumber, selectors);
+      if (data.cardSerialNumber && this.profile.requiresSerial) {
+        await this.fillField(page, selectors.serialInput, data.cardSerialNumber, 'serial number');
+      }
+      if (data.cardPin) {
+        await this.fillField(page, selectors.pinInput, data.cardPin, 'PIN');
+      }
     }
 
     await this.sleep(1000);

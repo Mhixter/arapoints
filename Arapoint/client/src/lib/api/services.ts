@@ -118,7 +118,7 @@ export const servicesApi = {
       const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/waec', data);
       return response.data.data;
     },
-    checkNECO: async (data: { registrationNumber: string; examYear?: number }): Promise<{ jobId: string; price: number }> => {
+    checkNECO: async (data: { registrationNumber: string; examYear?: number; examType?: string; cardPin?: string }): Promise<{ jobId: string; price: number }> => {
       const response = await apiClient.post<ApiResponse<{ jobId: string; price: number }>>('/education/neco', data);
       return response.data.data;
     },

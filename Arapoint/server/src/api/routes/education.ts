@@ -130,6 +130,8 @@ router.post('/neco', async (req: Request, res: Response) => {
       serviceType: 'neco',
       registrationNumber: validation.data.registrationNumber,
       examYear: validation.data.examYear,
+      examType: validation.data.examType,
+      cardPin: validation.data.cardPin,
     });
 
     logger.info('NECO lookup request', { userId: req.userId, jobId: job.jobId });
@@ -165,6 +167,8 @@ router.post('/nabteb', async (req: Request, res: Response) => {
       serviceType: 'nabteb',
       registrationNumber: validation.data.registrationNumber,
       examYear: validation.data.examYear,
+      cardSerialNumber: validation.data.cardSerialNumber,
+      cardPin: validation.data.cardPin,
     });
 
     logger.info('NABTEB lookup request', { userId: req.userId, jobId: job.jobId });
@@ -200,6 +204,8 @@ router.post('/nbais', async (req: Request, res: Response) => {
       serviceType: 'nbais',
       registrationNumber: validation.data.registrationNumber,
       examYear: validation.data.examYear,
+      cardSerialNumber: validation.data.cardSerialNumber,
+      cardPin: validation.data.cardPin,
     });
 
     logger.info('NBAIS lookup request', { userId: req.userId, jobId: job.jobId });

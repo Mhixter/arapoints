@@ -15,17 +15,23 @@ export const waecSchema = z.object({
 
 export const necoSchema = z.object({
   registrationNumber: z.string().min(5, 'Registration number is required'),
-  examYear: z.number().min(2000).max(new Date().getFullYear()).optional(),
+  examYear: z.number().min(2000).max(new Date().getFullYear()),
+  examType: z.enum(['school_candidate', 'private_candidate']).default('school_candidate'),
+  cardPin: z.string().min(10, 'Token is required for NECO result checking'),
 });
 
 export const nabtebSchema = z.object({
   registrationNumber: z.string().min(5, 'Registration number is required'),
-  examYear: z.number().min(2000).max(new Date().getFullYear()).optional(),
+  examYear: z.number().min(2000).max(new Date().getFullYear()),
+  cardSerialNumber: z.string().min(5, 'Card serial number is required').optional(),
+  cardPin: z.string().min(5, 'Card PIN is required').optional(),
 });
 
 export const nbaisSchema = z.object({
   registrationNumber: z.string().min(5, 'Registration number is required'),
-  examYear: z.number().min(2000).max(new Date().getFullYear()).optional(),
+  examYear: z.number().min(2000).max(new Date().getFullYear()),
+  cardSerialNumber: z.string().min(5, 'Card serial number is required').optional(),
+  cardPin: z.string().min(5, 'Card PIN is required').optional(),
 });
 
 export type JambInput = z.infer<typeof jambSchema>;
