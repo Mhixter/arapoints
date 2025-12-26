@@ -26,10 +26,11 @@ export default function EducationVerification() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [jambYear, setJambYear] = useState(currentYear.toString());
   const [examType, setExamType] = useState("school_candidate");
   const [examYear, setExamYear] = useState(currentYear.toString());
   const [token, setToken] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [activeProvider, setActiveProvider] = useState<string>("jamb");
 
   const pollJobStatus = async (jobId: string): Promise<any> => {
     const maxAttempts = 60;
@@ -54,28 +55,36 @@ export default function EducationVerification() {
     throw new Error('Request timed out. Please try again.');
   };
 
-  const handleJAMBCheck = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setResult(null);
     setError(null);
     setStatusMessage("Submitting request...");
 
-    const form = e.target as HTMLFormElement;
-    const regNumber = (form.elements.namedItem('jamb-reg') as HTMLInputElement).value;
-
     try {
-      const response = await servicesApi.education.checkJAMB({
-        registrationNumber: regNumber.toUpperCase(),
-        examYear: parseInt(jambYear)
-      });
+      let response;
+      if (activeProvider === "jamb") {
+        response = await servicesApi.education.checkJAMB({
+          registrationNumber: regNumber.toUpperCase(),
+          examYear: parseInt(examYear)
+        });
+      } else {
+        response = await servicesApi.education.verify({
+          serviceType: activeProvider,
+          registrationNumber: regNumber.toUpperCase(),
+          examYear: parseInt(examYear),
+          examType: examType,
+          cardPin: token
+        });
+      }
 
       setStatusMessage("Waiting for results...");
       const resultData = await pollJobStatus(response.jobId);
       setResult(resultData);
       setStatusMessage(null);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to check JAMB result');
+      setError(err.response?.data?.message || err.message || `Failed to check ${activeProvider.toUpperCase()} result`);
       setStatusMessage(null);
     } finally {
       setIsLoading(false);
@@ -85,20 +94,43 @@ export default function EducationVerification() {
   return (
     <div className="space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold tracking-tight">JAMB Result Checker</h2>
-        <p className="text-sm sm:text-base text-muted-foreground mt-2">Check your JAMB UTME/DE examination results instantly.</p>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold tracking-tight">Education Verification</h2>
+        <p className="text-sm sm:text-base text-muted-foreground mt-2">Check your examination results instantly for JAMB, WAEC, NECO and NABTEB.</p>
       </div>
 
       <div className="flex gap-2 sm:gap-3 md:gap-4 mb-4 flex-wrap justify-center sm:justify-start">
-        <ExamLogo name="JAMB" image={jambLogo} />
+        <div 
+          onClick={() => { setActiveProvider("jamb"); setResult(null); setError(null); }}
+          className={`cursor-pointer transition-all ${activeProvider === 'jamb' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : 'opacity-50'}`}
+        >
+          <ExamLogo name="JAMB" image={jambLogo} />
+        </div>
+        <div 
+          onClick={() => { setActiveProvider("waec"); setResult(null); setError(null); }}
+          className={`cursor-pointer transition-all ${activeProvider === 'waec' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : 'opacity-50'}`}
+        >
+          <ExamLogo name="WAEC" color="bg-blue-600" />
+        </div>
+        <div 
+          onClick={() => { setActiveProvider("neco"); setResult(null); setError(null); }}
+          className={`cursor-pointer transition-all ${activeProvider === 'neco' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : 'opacity-50'}`}
+        >
+          <ExamLogo name="NECO" color="bg-green-600" />
+        </div>
+        <div 
+          onClick={() => { setActiveProvider("nabteb"); setResult(null); setError(null); }}
+          className={`cursor-pointer transition-all ${activeProvider === 'nabteb' ? 'ring-2 ring-primary ring-offset-2 rounded-lg' : 'opacity-50'}`}
+        >
+          <ExamLogo name="NABTEB" color="bg-red-600" />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
         <div className="lg:col-span-2 space-y-4 md:space-y-6 lg:space-y-8">
           <Card>
             <CardHeader>
-              <CardTitle>Check Your Result</CardTitle>
-              <CardDescription>Enter your JAMB registration details to retrieve your result.</CardDescription>
+              <CardTitle>Check {activeProvider.toUpperCase()} Result</CardTitle>
+              <CardDescription>Enter your registration details to retrieve your {activeProvider.toUpperCase()} result.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -109,48 +141,26 @@ export default function EducationVerification() {
                   </div>
                 )}
                 <div className="border-t pt-6">
-                  <form onSubmit={handleJAMBCheck} className="grid gap-3 md:gap-4 lg:gap-6">
+                  <form onSubmit={handleSubmit} className="grid gap-3 md:gap-4 lg:gap-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="jamb-reg">JAMB Registration Number *</Label>
-                        <Input id="jamb-reg" name="jamb-reg" placeholder="e.g., 1234567890" required className="h-10 sm:h-11 uppercase text-sm" />
+                        <Label>Registration Number *</Label>
+                        <Input 
+                          value={regNumber}
+                          onChange={(e) => setRegNumber(e.target.value)}
+                          placeholder="e.g., 1234567890" 
+                          required 
+                          className="h-10 sm:h-11 uppercase text-sm" 
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="jamb-year">Exam Year *</Label>
-                        <Select value={jambYear} onValueChange={setJambYear}>
-                          <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {Array.from({length: 12}, (_, i) => currentYear + 1 - i).map(year => (
-                              <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 border-t pt-4">
-                      <div className="space-y-2">
-                        <Label>Exam Type *</Label>
-                        <Select value={examType} onValueChange={setExamType}>
-                          <SelectTrigger className="h-10 sm:h-11">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="school_candidate">School Candidate (Internal)</SelectItem>
-                            <SelectItem value="private_candidate">Private Candidate (GCE)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Exam Year *</Label>
+                        <Label>Examination Year *</Label>
                         <Select value={examYear} onValueChange={setExamYear}>
                           <SelectTrigger className="h-10 sm:h-11">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {Array.from({length: 20}, (_, i) => currentYear - i).map(year => (
+                            {Array.from({length: 25}, (_, i) => currentYear - i).map(year => (
                               <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                             ))}
                           </SelectContent>
@@ -158,16 +168,32 @@ export default function EducationVerification() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>Scratch Card PIN / Token *</Label>
-                      <Input 
-                        value={token} 
-                        onChange={(e) => setToken(e.target.value)}
-                        placeholder="Enter PIN or Token"
-                        className="h-10 sm:h-11"
-                        required
-                      />
-                    </div>
+                    {activeProvider !== "jamb" && (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Examination Type *</Label>
+                          <Select value={examType} onValueChange={setExamType}>
+                            <SelectTrigger className="h-10 sm:h-11">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="school_candidate">School Candidate (Internal)</SelectItem>
+                              <SelectItem value="private_candidate">Private Candidate (GCE)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Scratch Card PIN / Token *</Label>
+                          <Input 
+                            value={token} 
+                            onChange={(e) => setToken(e.target.value)}
+                            placeholder="Enter PIN or Token"
+                            className="h-10 sm:h-11"
+                            required
+                          />
+                        </div>
+                      </>
+                    )}
 
                     <Button type="submit" size="lg" disabled={isLoading} className="w-full">
                       {isLoading ? (
@@ -176,7 +202,7 @@ export default function EducationVerification() {
                           {statusMessage || "Checking Result..."}
                         </>
                       ) : (
-                        "Check JAMB Result"
+                        `Check ${activeProvider.toUpperCase()} Result`
                       )}
                     </Button>
                   </form>
@@ -206,7 +232,18 @@ export default function EducationVerification() {
                     </div>
                     <div className="text-left sm:text-right">
                       <p className="text-xs text-muted-foreground uppercase tracking-wider">Reg Number</p>
-                      <p className="font-mono font-bold text-base sm:text-lg">{result.regNumber || result.registrationNumber || 'N/A'}</p>
+                      <p className="font-mono font-bold text-base sm:text-lg">{result.registrationNumber || result.regNumber || 'N/A'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Exam Year</p>
+                      <p className="font-bold">{result.examYear || 'N/A'}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Exam Type</p>
+                      <p className="font-bold capitalize">{result.examType?.replace('_', ' ') || 'N/A'}</p>
                     </div>
                   </div>
 
@@ -214,45 +251,39 @@ export default function EducationVerification() {
                     <div className="border rounded-lg p-3 sm:p-4 bg-muted/10">
                       <div className="flex justify-between items-center mb-3 sm:mb-4 pb-2 border-b">
                         <span className="font-semibold text-sm sm:text-base">Subject</span>
-                        <span className="font-semibold text-sm sm:text-base">Score</span>
+                        <span className="font-semibold text-sm sm:text-base">Grade</span>
                       </div>
                       <div className="space-y-2 sm:space-y-3">
                         {result.subjects.map((sub: any, i: number) => (
                           <div key={i} className="flex justify-between items-center text-xs sm:text-sm">
-                            <span>{sub.name || sub.subject}</span>
-                            <span className="font-mono font-bold">{sub.score || sub.grade}</span>
+                            <span>{sub.subject}</span>
+                            <span className="font-mono font-bold">{sub.grade}</span>
                           </div>
                         ))}
                       </div>
-                      {(result.score || result.aggregate) && (
-                        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t flex justify-between items-center">
-                          <span className="font-bold text-base sm:text-lg">Aggregate Score</span>
-                          <span className="font-mono font-bold text-xl sm:text-2xl text-primary">{result.score || result.aggregate}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {(result.status || result.institution) && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 text-center">
-                       <p className="text-sm text-blue-800 dark:text-blue-300">
-                         Admission Status: <span className="font-bold">{result.status || 'N/A'}</span>
-                       </p>
-                       {result.institution && (
-                         <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">{result.institution}</p>
-                       )}
                     </div>
                   )}
                 </CardContent>
                 <CardFooter className="bg-muted/30 p-3 sm:p-4 flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between">
-                   <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
+                   <Button variant="outline" size="sm" className="w-full sm:w-auto text-xs sm:text-sm" onClick={() => window.print()}>
                     <Printer className="mr-2 h-4 w-4" />
                     Print
                   </Button>
-                   <Button size="sm" className="w-full sm:w-auto text-xs sm:text-sm">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download Certificate
-                  </Button>
+                   {result.pdfBase64 && (
+                     <Button 
+                       size="sm" 
+                       className="w-full sm:w-auto text-xs sm:text-sm"
+                       onClick={() => {
+                         const link = document.createElement('a');
+                         link.href = `data:application/pdf;base64,${result.pdfBase64}`;
+                         link.download = `${activeProvider.toUpperCase()}_Result_${result.registrationNumber}.pdf`;
+                         link.click();
+                       }}
+                     >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Result
+                    </Button>
+                   )}
                 </CardFooter>
               </Card>
             </div>
