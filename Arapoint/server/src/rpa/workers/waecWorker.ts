@@ -293,21 +293,36 @@ export class WAECWorker extends BaseWorker {
       }
     }
 
-    const examTypeToSelect = data.examType || "WASSCE";
+    const examTypeToSelect = data.examType || (provider === 'neco' ? 'school_candidate' : 'WASSCE');
     logger.info('Attempting to select exam type', { requestedType: examTypeToSelect, provider });
     
     try {
       const selected = await page.evaluate((examType, prov) => {
         const selects = Array.from(document.querySelectorAll('select'));
         const isNeco = prov === 'neco';
+        
+        // Better matching for NECO
+        const necoTypeMatch = (text: string, value: string) => {
+          const t = text.toLowerCase();
+          const v = value.toLowerCase();
+          if (examType === 'school_candidate' || examType.includes('internal')) {
+            return t.includes('internal') || t.includes('school') || v.includes('int') || v.includes('ssce_int');
+          }
+          if (examType === 'private_candidate' || examType.includes('private') || examType.includes('gce')) {
+            return t.includes('private') || t.includes('gce') || v.includes('ext') || v.includes('ssce_ext');
+          }
+          return false;
+        };
+
         for (const select of selects) {
           const options = Array.from(select.querySelectorAll('option'));
           for (let i = 0; i < options.length; i++) {
             const option = options[i];
-            const optText = option.textContent?.toLowerCase() || '';
-            const optValue = option.value?.toLowerCase() || '';
+            const optText = option.textContent || '';
+            const optValue = option.value || '';
+            
             if (isNeco) {
-              if (optText.includes('internal') || optValue.includes('int')) {
+              if (necoTypeMatch(optText, optValue)) {
                 (select as HTMLSelectElement).selectedIndex = i;
                 select.dispatchEvent(new Event('change', { bubbles: true }));
                 return { success: true, selectedText: option.textContent, selectedValue: option.value };
@@ -380,7 +395,12 @@ export class WAECWorker extends BaseWorker {
 
     if (data.cardPin) {
       let pinEntered = false;
-      const pinSelectors = ['input[name="Pin"]', 'input[name="pin"]', 'input[name="PIN"]', 'input#Pin', 'input#pin', 'input#PIN', 'input[type="password"]'];
+      const pinSelectors = [
+        'input[name="Pin"]', 'input[name="pin"]', 'input[name="PIN"]', 
+        'input#Pin', 'input#pin', 'input#PIN', 
+        'input[name="token"]', 'input#token', 'input[name="cardToken"]',
+        'input[type="password"]', 'input[type="text"][placeholder*="Token"]', 'input[type="text"][placeholder*="PIN"]'
+      ];
       for (const selector of pinSelectors) {
         try {
           const input = await page.$(selector);
