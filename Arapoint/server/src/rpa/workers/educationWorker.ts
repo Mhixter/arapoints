@@ -327,22 +327,48 @@ export class EducationWorker extends BaseWorker {
     });
 
     const urlBeforeSubmit = page.url();
+    const htmlBeforeSubmit = await page.content();
+    
     await this.submitForm(page);
     
+    // Wait for either navigation or content change (for SPAs)
     try {
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 });
-    } catch {}
+      await Promise.race([
+        page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }),
+        page.waitForFunction(() => {
+          // Check for result content appearing
+          const hasTable = document.querySelector('table');
+          const hasResultText = document.body.innerText.includes('Subject') || 
+                                document.body.innerText.includes('Grade') ||
+                                document.body.innerText.includes('Score');
+          const hasError = document.body.innerText.includes('Invalid') || 
+                           document.body.innerText.includes('Expired') ||
+                           document.body.innerText.includes('Used');
+          return hasTable || hasResultText || hasError;
+        }, { timeout: 15000 })
+      ]);
+    } catch {
+      logger.info('No navigation or content change detected within timeout');
+    }
     
     await this.sleep(3000);
 
     const resultUrl = page.url();
-    if (this.isStillOnFormPage(resultUrl, urlBeforeSubmit)) {
-      const pageError = await this.checkForErrors(page);
-      if (pageError) {
-        throw new Error(pageError);
-      }
+    const htmlAfterSubmit = await page.content();
+    const contentChanged = htmlBeforeSubmit !== htmlAfterSubmit;
+    
+    // Check for errors first (on any page)
+    const pageError = await this.checkForErrors(page);
+    if (pageError) {
+      throw new Error(pageError);
+    }
+    
+    // For SPAs like NECO, check if content changed even if URL stayed the same
+    if (this.isStillOnFormPage(resultUrl, urlBeforeSubmit) && !contentChanged) {
       throw new Error(`Could not submit form to ${this.profile.name} portal. Please verify your details.`);
     }
+    
+    logger.info('Form submitted, checking for results', { contentChanged, urlChanged: resultUrl !== urlBeforeSubmit });
 
     let screenshotBase64: string | undefined;
     try {
@@ -503,25 +529,53 @@ export class EducationWorker extends BaseWorker {
         const btn = await page.$(selector);
         if (btn) {
           await btn.click();
+          logger.info('Clicked submit button', { selector });
           return;
         }
       } catch { continue; }
     }
 
+    // For SPAs like NECO - find button by text content with flexible matching
     const clicked = await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('button, input[type="submit"], input[type="button"]'));
-      for (const btn of buttons) {
+      // First try to find buttons with exact text patterns
+      const allButtons = Array.from(document.querySelectorAll('button'));
+      
+      // Look for "Check Result" button specifically (NECO)
+      for (const btn of allButtons) {
+        const text = (btn.textContent || '').trim().toLowerCase();
+        if (text === 'check result' || text === 'check my result') {
+          (btn as HTMLElement).click();
+          console.log('Clicked button with text:', btn.textContent);
+          return true;
+        }
+      }
+      
+      // Look for buttons containing check/submit keywords
+      for (const btn of allButtons) {
         const text = (btn.textContent || '').toLowerCase();
+        if (text.includes('check') || text.includes('submit') || text.includes('verify')) {
+          (btn as HTMLElement).click();
+          console.log('Clicked button with text:', btn.textContent);
+          return true;
+        }
+      }
+      
+      // Try input buttons as fallback
+      const inputButtons = Array.from(document.querySelectorAll('input[type="submit"], input[type="button"]'));
+      for (const btn of inputButtons) {
         const value = ((btn as HTMLInputElement).value || '').toLowerCase();
-        if (text.includes('check') || text.includes('submit') || value.includes('check') || value.includes('submit')) {
+        if (value.includes('check') || value.includes('submit')) {
           (btn as HTMLElement).click();
           return true;
         }
       }
+      
       return false;
     });
     
-    if (!clicked) {
+    if (clicked) {
+      logger.info('Clicked submit button via page.evaluate');
+    } else {
       throw new Error(`Could not find submit button on ${this.profile.name} portal`);
     }
   }
