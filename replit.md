@@ -34,10 +34,19 @@ Preferred communication style: Simple, everyday language.
 
 ### RPA (Robotic Process Automation) Layer
 - **Purpose**: Automates queries to third-party Nigerian government and institutional portals that lack APIs
-- **Location**: `Arapoint/rpa/` as a separate module with its own package.json
-- **Technology**: Puppeteer for browser automation, Bull Queue for job processing
-- **Architecture**: Provider-based system with pluggable providers for different services (NIN, BVN, JAMB, WAEC, etc.)
-- **Job Queue**: Database-backed job queue in `rpa_jobs` table, processed by bot controller in `Arapoint/server/src/rpa/bot.ts`
+- **Location**: `Arapoint/server/src/rpa/` for workers and bot controller
+- **Technology**: Puppeteer for browser automation with browser pool (5 concurrent browsers, 45s timeout)
+- **Architecture**: 
+  - **Factory Pattern**: `EducationWorkerFactory` creates provider-specific workers using provider profiles
+  - **Provider Profiles**: WAEC, NECO, NABTEB, NBAIS each have custom selectors, exam type normalizers, and field requirements
+  - **Unified Worker**: Single `EducationWorker` class handles all education providers with injected configuration
+  - **Preflight Validation**: Jobs fail fast if portal URLs are not configured in admin settings
+- **Key Files**:
+  - `Arapoint/server/src/rpa/workers/educationWorker.ts` - Factory and unified worker for all exam bodies
+  - `Arapoint/server/src/rpa/workers/jambWorker.ts` - JAMB-specific worker
+  - `Arapoint/server/src/rpa/bot.ts` - Job controller that polls database and dispatches to workers
+  - `Arapoint/server/src/rpa/browserPool.ts` - Manages Puppeteer browser instances
+- **Job Queue**: Database-backed job queue in `rpa_jobs` table, processed by bot controller
 
 ### Service Layer
 - **Location**: `Arapoint/server/src/services/`
