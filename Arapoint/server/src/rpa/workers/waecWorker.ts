@@ -42,7 +42,7 @@ export class WAECWorker extends BaseWorker {
     examNumberInput: 'input[name="ExamNumber"], input[name="examnumber"], input[name="CandNo"], input[name="examNumber"], input#ExamNumber, input#examnumber, input#CandNo, input#examNumber, input[name="exam_no"], input[name="registrationNumber"], input[name="exam_year_no"], input[placeholder*="Registration"], input[placeholder*="Examination Number"], input[name="reg_no"], input[name="regNumber"], input[name="exam_no"]',
     cardSerialInput: 'input[name="SerialNumber"], input[name="serialNumber"], input[name="Serial"], input#SerialNumber, input#serialNumber, input#Serial, input[name="serial_no"], input[name="serial"], input[name="token"], input[name="cardSerialNumber"]',
     cardPinInput: 'input[name="Pin"], input[name="pin"], input[name="PIN"], input#Pin, input#pin, input#PIN, input[name="pin_no"], input[name="pin"], input[name="cardPin"]',
-    submitButton: 'input[type="submit"], button[type="submit"], button.submit, input.submit, button[name="submit"], .btn-submit, #submit, button:contains("Submit"), button:contains("Check"), input[value="Submit"], input[value="Check"], button.btn-primary',
+    submitButton: "button:not([value*=\"Purchase\"]):not([id*=\"purchase\"]):not([class*=\"purchase\"]):contains(\"Check\"), button:not([value*=\"Purchase\"]):not([id*=\"purchase\"]):not([class*=\"purchase\"]):contains(\"Result\"), input[type=\"submit\"]:not([value*=\"Purchase\"]), button[type=\"submit\"]:not([value*=\"Purchase\"])",
     resultTable: 'table.resultTable, table#resultTable, .result-table, table',
     candidateName: '.candidate-name, .name, td:contains("Name")+td',
     errorMessage: '.error, .alert-danger, .error-message',
