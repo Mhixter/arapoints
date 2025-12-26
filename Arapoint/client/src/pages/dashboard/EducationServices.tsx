@@ -416,22 +416,29 @@ export default function EducationServices() {
       if (result?.pdfBase64) {
         let blob: Blob;
         
-        // Check if it's a base64 string or already binary data
         if (typeof result.pdfBase64 === 'string') {
-          // Clean the base64 string
-          const cleanBase64 = result.pdfBase64.replace(/[\s\r\n]/g, '');
-          
-          // Decode base64 to binary
-          const binaryString = atob(cleanBase64);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
+          // Check if it's comma-separated bytes (e.g., "37,80,68,70,45,...")
+          if (result.pdfBase64.includes(',') && /^[\d,\s]+$/.test(result.pdfBase64.substring(0, 100))) {
+            // It's comma-separated byte values - split and convert
+            const byteValues = result.pdfBase64.split(',').map(n => parseInt(n.trim(), 10));
+            const bytes = new Uint8Array(byteValues);
+            blob = new Blob([bytes], { type: 'application/pdf' });
+          } else {
+            // Assume it's base64
+            const cleanBase64 = result.pdfBase64.replace(/[\s\r\n]/g, '');
+            const binaryString = atob(cleanBase64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
+            blob = new Blob([bytes], { type: 'application/pdf' });
           }
-          blob = new Blob([bytes], { type: 'application/pdf' });
-        } else {
-          // Already binary data (array of numbers)
+        } else if (Array.isArray(result.pdfBase64)) {
+          // Array of numbers
           const bytes = new Uint8Array(result.pdfBase64);
           blob = new Blob([bytes], { type: 'application/pdf' });
+        } else {
+          throw new Error('Invalid PDF data format');
         }
         
         const url = window.URL.createObjectURL(blob);
