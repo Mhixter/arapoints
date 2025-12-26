@@ -331,6 +331,13 @@ export class EducationWorker extends BaseWorker {
     
     await this.submitForm(page);
     
+    // NECO shows a confirmation dialog - need to click "Proceed"
+    await this.sleep(1000);
+    const hasConfirmation = await this.handleNecoConfirmation(page);
+    if (hasConfirmation) {
+      logger.info('NECO confirmation dialog handled, clicked Proceed');
+    }
+    
     // Wait for either navigation or content change (for SPAs)
     try {
       await Promise.race([
@@ -538,6 +545,45 @@ export class EducationWorker extends BaseWorker {
     }
     
     logger.warn(`Could not find ${fieldName} input field`);
+  }
+
+  private async handleNecoConfirmation(page: Page): Promise<boolean> {
+    // NECO shows a confirmation popup with "Proceed" and "Cancel" buttons
+    try {
+      const clicked = await page.evaluate(() => {
+        const buttons = Array.from(document.querySelectorAll('button'));
+        
+        // Look for "Proceed" button in confirmation dialog
+        for (const btn of buttons) {
+          const text = (btn.textContent || '').trim().toLowerCase();
+          if (text === 'proceed' || text === 'confirm' || text === 'yes') {
+            (btn as HTMLElement).click();
+            console.log('Clicked confirmation button:', btn.textContent);
+            return true;
+          }
+        }
+        
+        // Also check for links styled as buttons
+        const links = Array.from(document.querySelectorAll('a'));
+        for (const link of links) {
+          const text = (link.textContent || '').trim().toLowerCase();
+          if (text === 'proceed' || text === 'confirm') {
+            (link as HTMLElement).click();
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      if (clicked) {
+        await this.sleep(2000); // Wait for dialog to process
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
   }
 
   private async submitForm(page: Page): Promise<void> {
