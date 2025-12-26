@@ -303,13 +303,15 @@ export class WAECWorker extends BaseWorker {
         
         // Better matching for NECO
         const necoTypeMatch = (text: string, value: string) => {
-          const t = text.toLowerCase();
-          const v = value.toLowerCase();
-          if (examType === 'school_candidate' || examType.includes('internal')) {
-            return t.includes('internal') || t.includes('school') || v.includes('int') || v.includes('ssce_int');
+          const t = text.toLowerCase().trim();
+          const v = value.toLowerCase().trim();
+          const target = examType.toLowerCase();
+
+          if (target === 'school_candidate' || target.includes('internal')) {
+            return t.includes('internal') || t.includes('school') || v.includes('int') || v.includes('ssce_int') || v === 'ssce (internal)';
           }
-          if (examType === 'private_candidate' || examType.includes('private') || examType.includes('gce')) {
-            return t.includes('private') || t.includes('gce') || v.includes('ext') || v.includes('ssce_ext');
+          if (target === 'private_candidate' || target.includes('private') || target.includes('gce')) {
+            return t.includes('private') || t.includes('gce') || v.includes('ext') || v.includes('ssce_ext') || v === 'ssce (external)';
           }
           return false;
         };
@@ -324,7 +326,18 @@ export class WAECWorker extends BaseWorker {
             if (isNeco) {
               if (necoTypeMatch(optText, optValue)) {
                 (select as HTMLSelectElement).selectedIndex = i;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
+                const event = new Event('change', { bubbles: true });
+                select.dispatchEvent(event);
+                
+                // Native event trigger
+                if ('createEvent' in document) {
+                  const evt = document.createEvent('HTMLEvents');
+                  evt.initEvent('change', true, true);
+                  select.dispatchEvent(evt);
+                }
+                
+                // Extra layer for React/Angular/Vue components
+                select.dispatchEvent(new Event('input', { bubbles: true }));
                 return { success: true, selectedText: option.textContent, selectedValue: option.value };
               }
             } else {
@@ -399,7 +412,8 @@ export class WAECWorker extends BaseWorker {
         'input[name="Pin"]', 'input[name="pin"]', 'input[name="PIN"]', 
         'input#Pin', 'input#pin', 'input#PIN', 
         'input[name="token"]', 'input#token', 'input[name="cardToken"]',
-        'input[type="password"]', 'input[type="text"][placeholder*="Token"]', 'input[type="text"][placeholder*="PIN"]'
+        'input[type="password"]', 'input[type="text"][placeholder*="Token"]', 
+        'input[type="text"][placeholder*="PIN"]', 'input#tokenCode'
       ];
       for (const selector of pinSelectors) {
         try {
@@ -429,7 +443,11 @@ export class WAECWorker extends BaseWorker {
     });
 
     const urlBeforeSubmit = page.url();
-    const submitSelectors = ['input[type="submit"]', 'button[type="submit"]', 'input[value="Submit"]', 'input[value="Check Result"]', '.btn-submit', '#btnSubmit', '#Submit'];
+    const submitSelectors = [
+      'button#btnSubmit', 'input#btnSubmit', 'button:contains("Check Result")', 
+      'input[value="Check Result"]', 'button[type="submit"]', 'input[type="submit"]',
+      '.btn-success', '.btn-primary', 'button.submit', 'input.submit'
+    ];
 
     let submitButton = null;
     for (const selector of submitSelectors) {
@@ -504,7 +522,12 @@ export class WAECWorker extends BaseWorker {
 
     if (isStillOnFormPage && !popupCaptured) {
       const pageError = await resultPage.evaluate(() => {
-        const errSelectors = ['.alert-danger', '.error', '.text-danger', '.err-msg', '#lblError', '.validation-summary-errors', '.errorMessage', '[id*="Error"]', '[class*="error"]', '.toast-error', '.notification-error'];
+        const errSelectors = [
+          '.alert-danger', '.error', '.text-danger', '.err-msg', '#lblError', 
+          '.validation-summary-errors', '.errorMessage', '[id*="Error"]', 
+          '[class*="error"]', '.toast-error', '.notification-error',
+          '.alert-warning', '#message'
+        ];
         for (const sel of errSelectors) {
           const elements = document.querySelectorAll(sel);
           for (const el of Array.from(elements)) {
