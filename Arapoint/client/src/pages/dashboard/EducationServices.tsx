@@ -414,12 +414,25 @@ export default function EducationServices() {
     try {
       // If PDF is already in the result, download directly
       if (result?.pdfBase64) {
-        // Clean the base64 string - remove any whitespace or invalid characters
-        const cleanBase64 = result.pdfBase64.replace(/[\s\r\n]/g, '');
+        let blob: Blob;
         
-        // Convert base64 to binary using fetch API (more robust than atob)
-        const response = await fetch(`data:application/pdf;base64,${cleanBase64}`);
-        const blob = await response.blob();
+        // Check if it's a base64 string or already binary data
+        if (typeof result.pdfBase64 === 'string') {
+          // Clean the base64 string
+          const cleanBase64 = result.pdfBase64.replace(/[\s\r\n]/g, '');
+          
+          // Decode base64 to binary
+          const binaryString = atob(cleanBase64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          blob = new Blob([bytes], { type: 'application/pdf' });
+        } else {
+          // Already binary data (array of numbers)
+          const bytes = new Uint8Array(result.pdfBase64);
+          blob = new Blob([bytes], { type: 'application/pdf' });
+        }
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
