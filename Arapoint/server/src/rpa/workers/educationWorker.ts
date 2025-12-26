@@ -46,6 +46,8 @@ interface ProviderProfile {
   };
   examTypeNormalizer: (examType: string) => { isInternal: boolean };
   defaultExamType: string;
+  usesToken: boolean;
+  requiresSerial: boolean;
 }
 
 const PROVIDER_PROFILES: Record<string, ProviderProfile> = {
@@ -65,6 +67,8 @@ const PROVIDER_PROFILES: Record<string, ProviderProfile> = {
       return { isInternal: t.includes('wassce') || t.includes('school') || t.includes('internal') || !t.includes('gce') };
     },
     defaultExamType: 'WASSCE',
+    usesToken: false,
+    requiresSerial: true,
   },
   neco: {
     name: 'NECO',
@@ -82,6 +86,8 @@ const PROVIDER_PROFILES: Record<string, ProviderProfile> = {
       return { isInternal: t.includes('school') || t.includes('internal') || t === 'school_candidate' };
     },
     defaultExamType: 'school_candidate',
+    usesToken: true,
+    requiresSerial: false,
   },
   nabteb: {
     name: 'NABTEB',
@@ -99,6 +105,8 @@ const PROVIDER_PROFILES: Record<string, ProviderProfile> = {
       return { isInternal: !t.includes('gce') && !t.includes('private') };
     },
     defaultExamType: 'NBC/NTC',
+    usesToken: false,
+    requiresSerial: true,
   },
   nbais: {
     name: 'NBAIS',
@@ -113,6 +121,8 @@ const PROVIDER_PROFILES: Record<string, ProviderProfile> = {
     },
     examTypeNormalizer: () => ({ isInternal: true }),
     defaultExamType: 'AISSCE',
+    usesToken: false,
+    requiresSerial: true,
   },
 };
 
@@ -292,13 +302,13 @@ export class EducationWorker extends BaseWorker {
     await this.selectExamType(page, data.examType || this.profile.defaultExamType);
     await this.fillRegistrationNumber(page, data.registrationNumber, selectors);
     
-    if (data.cardSerialNumber) {
+    if (data.cardSerialNumber && this.profile.requiresSerial) {
       await this.fillField(page, selectors.serialInput, data.cardSerialNumber, 'serial number');
     }
     
     if (data.cardPin) {
-      const pinOrTokenSelector = this.provider === 'neco' ? selectors.tokenInput : selectors.pinInput;
-      await this.fillField(page, pinOrTokenSelector, data.cardPin, 'PIN/token');
+      const pinSelector = this.profile.usesToken ? selectors.tokenInput : selectors.pinInput;
+      await this.fillField(page, pinSelector, data.cardPin, this.profile.usesToken ? 'token' : 'PIN');
     }
 
     await this.sleep(1000);
@@ -426,8 +436,13 @@ export class EducationWorker extends BaseWorker {
     }
   }
 
+  private parseSelectors(selectorString: string | undefined): string[] {
+    if (!selectorString) return [];
+    return selectorString.split(/,\s*/).map(s => s.trim()).filter(s => s.length > 0);
+  }
+
   private async fillRegistrationNumber(page: Page, regNumber: string, selectors: Record<string, string>): Promise<void> {
-    const selectorList = selectors.examNumberInput?.split(', ') || [];
+    const selectorList = this.parseSelectors(selectors.examNumberInput);
     
     for (const selector of selectorList) {
       try {
@@ -451,7 +466,7 @@ export class EducationWorker extends BaseWorker {
   }
 
   private async fillField(page: Page, selectorString: string, value: string, fieldName: string): Promise<void> {
-    const selectorList = selectorString?.split(', ') || [];
+    const selectorList = this.parseSelectors(selectorString);
     
     for (const selector of selectorList) {
       try {
@@ -605,6 +620,37 @@ export class EducationWorkerFactory {
 
   static getSupportedProviders(): string[] {
     return Object.keys(PROVIDER_PROFILES);
+  }
+
+  static isSupported(provider: string): boolean {
+    return provider.toLowerCase() in PROVIDER_PROFILES;
+  }
+
+  static getProfile(provider: string): ProviderProfile | undefined {
+    return PROVIDER_PROFILES[provider.toLowerCase()];
+  }
+
+  static async validateConfiguration(provider: string): Promise<{ valid: boolean; error?: string }> {
+    const profile = PROVIDER_PROFILES[provider.toLowerCase()];
+    if (!profile) {
+      return { valid: false, error: `Unknown provider: ${provider}` };
+    }
+
+    try {
+      const [setting] = await db
+        .select()
+        .from(adminSettings)
+        .where(eq(adminSettings.settingKey, profile.settingsKey))
+        .limit(1);
+
+      if (!setting?.settingValue) {
+        return { valid: false, error: `${profile.name} portal URL not configured in admin settings` };
+      }
+
+      return { valid: true };
+    } catch (error: any) {
+      return { valid: false, error: `Failed to validate configuration: ${error.message}` };
+    }
   }
 }
 

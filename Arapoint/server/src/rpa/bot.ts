@@ -2,7 +2,7 @@ import { jobQueue, RPAJob } from './queue';
 import { logger } from '../utils/logger';
 import { config } from '../config/env';
 import { jambWorker } from './workers/jambWorker';
-import { waecWorker } from './workers/waecWorker';
+import { EducationWorkerFactory } from './workers/educationWorker';
 import { db } from '../config/database';
 import { rpaJobs, educationServices, servicePricing, adminSettings } from '../db/schema';
 import { eq, asc, and } from 'drizzle-orm';
@@ -177,28 +177,22 @@ class RPABot {
       case 'waec':
       case 'waec_result':
       case 'waec_service':
-        return await waecWorker.execute(queryData);
+        return await this.executeEducationWorker('waec', queryData);
 
       case 'neco':
       case 'neco_result':
       case 'neco_service':
-        const necoUrl = await this.getPortalUrl('neco');
-        if (!necoUrl) return { success: false, error: 'NECO portal URL not configured' };
-        return await waecWorker.execute({ ...queryData, portalUrl: necoUrl, provider: 'neco' }); 
+        return await this.executeEducationWorker('neco', queryData);
 
       case 'nabteb':
       case 'nabteb_result':
       case 'nabteb_service':
-        const nabtebUrl = await this.getPortalUrl('nabteb');
-        if (!nabtebUrl) return { success: false, error: 'NABTEB portal URL not configured' };
-        return await waecWorker.execute({ ...queryData, portalUrl: nabtebUrl, provider: 'nabteb' });
+        return await this.executeEducationWorker('nabteb', queryData);
 
       case 'nbais':
       case 'nbais_result':
       case 'nbais_service':
-        const mbaisUrl = await this.getPortalUrl('mbais');
-        if (!mbaisUrl) return { success: false, error: 'MBAIS portal URL not configured' };
-        return await waecWorker.execute({ ...queryData, portalUrl: mbaisUrl, provider: 'nbais' });
+        return await this.executeEducationWorker('nbais', queryData);
 
       default:
         logger.warn(`Unknown service type: ${serviceType}`);
@@ -207,6 +201,19 @@ class RPABot {
           error: `Unknown service type: ${serviceType}`,
         };
     }
+  }
+
+  private async executeEducationWorker(
+    provider: string, 
+    queryData: Record<string, any>
+  ): Promise<{ success: boolean; data?: Record<string, unknown>; error?: string }> {
+    const validation = await EducationWorkerFactory.validateConfiguration(provider);
+    if (!validation.valid) {
+      logger.warn(`${provider.toUpperCase()} worker configuration invalid`, { error: validation.error });
+      return { success: false, error: validation.error };
+    }
+    
+    return await EducationWorkerFactory.getWorker(provider).execute(queryData);
   }
 
   private async getPortalUrl(provider: string): Promise<string | null> {
