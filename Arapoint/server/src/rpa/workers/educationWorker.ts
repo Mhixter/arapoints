@@ -701,11 +701,37 @@ export class EducationWorker extends BaseWorker {
         
         for (const row of Array.from(rows)) {
           const cells = row.querySelectorAll('td');
-          if (cells.length >= 2) {
-            const subject = cells[0]?.textContent?.trim() || '';
-            const grade = cells[cells.length - 1]?.textContent?.trim() || cells[1]?.textContent?.trim() || '';
+          if (cells.length >= 3) {
+            // NECO format: S/N | SUBJECT | GRADE | REMARK
+            // WAEC format: SUBJECT | GRADE
+            const firstCell = cells[0]?.textContent?.trim() || '';
             
-            if (subject && grade && subject.length > 1 && grade.length <= 3) {
+            let subject = '';
+            let grade = '';
+            
+            // If first cell is a number (S/N), subject is in second cell
+            if (/^\d+$/.test(firstCell)) {
+              subject = cells[1]?.textContent?.trim() || '';
+              grade = cells[2]?.textContent?.trim() || '';
+            } else {
+              // Standard format: subject in first cell
+              subject = firstCell;
+              grade = cells[1]?.textContent?.trim() || '';
+            }
+            
+            // Validate: subject should be text, grade should be short (like A1, B2, C4, D7, E8, F9)
+            if (subject && grade && 
+                subject.length > 2 && 
+                grade.length <= 3 &&
+                !/^(S\/N|SUBJECT|GRADE|REMARK)$/i.test(subject)) {
+              subjects.push({ subject, grade });
+            }
+          } else if (cells.length === 2) {
+            // Fallback for 2-column tables
+            const subject = cells[0]?.textContent?.trim() || '';
+            const grade = cells[1]?.textContent?.trim() || '';
+            
+            if (subject && grade && subject.length > 2 && grade.length <= 3) {
               subjects.push({ subject, grade });
             }
           }
