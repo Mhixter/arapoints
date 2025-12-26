@@ -370,6 +370,30 @@ export class EducationWorker extends BaseWorker {
     
     logger.info('Form submitted, checking for results', { contentChanged, urlChanged: resultUrl !== urlBeforeSubmit });
 
+    // Debug: Capture page structure to understand result format
+    const pageDebugInfo = await page.evaluate(() => {
+      const tables = document.querySelectorAll('table');
+      const tableInfo = Array.from(tables).map((t, i) => ({
+        index: i,
+        rows: t.querySelectorAll('tr').length,
+        innerHTML: t.innerHTML.substring(0, 500)
+      }));
+      
+      // Look for any result-like content
+      const bodyText = document.body.innerText.substring(0, 2000);
+      const hasResultKeywords = bodyText.includes('Subject') || bodyText.includes('Grade') || bodyText.includes('Score');
+      
+      return {
+        url: window.location.href,
+        tablesFound: tables.length,
+        tableInfo,
+        bodyTextPreview: bodyText.substring(0, 1000),
+        hasResultKeywords
+      };
+    });
+    
+    logger.info('Page debug info after form submission', pageDebugInfo);
+
     let screenshotBase64: string | undefined;
     try {
       const screenshotBuffer = await page.screenshot({ fullPage: true, type: 'png' });
