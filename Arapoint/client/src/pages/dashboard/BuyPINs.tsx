@@ -49,6 +49,7 @@ export default function BuyPINs() {
   const [purchasedPins, setPurchasedPins] = useState<{ examType: string; pin: string; serial?: string }[]>([]);
   const [history, setHistory] = useState<PINOrder[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState("buy");
 
   const fetchStock = async () => {
     setIsLoading(true);
@@ -182,11 +183,15 @@ export default function BuyPINs() {
     }
   };
 
-  const handleReset = () => {
+  const handleReset = (showHistory: boolean = false) => {
     setPins(pins.map(pin => ({ ...pin, quantity: 0 })));
     setPurchaseComplete(false);
     setPurchasedPins([]);
     fetchStock();
+    if (showHistory) {
+      setActiveTab("history");
+      fetchHistory();
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -252,10 +257,16 @@ export default function BuyPINs() {
                 </div>
               ))}
             </div>
-            <Button onClick={handleReset} className="w-full">
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Purchase More PINs
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button onClick={() => handleReset(true)} className="flex-1">
+                <History className="mr-2 h-4 w-4" />
+                View My PINs
+              </Button>
+              <Button onClick={() => handleReset(false)} variant="outline" className="flex-1">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Purchase More
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -269,7 +280,7 @@ export default function BuyPINs() {
         <p className="text-sm sm:text-base text-muted-foreground mt-2">Purchase result checker PINs for all major examination bodies.</p>
       </div>
 
-      <Tabs defaultValue="buy" onValueChange={(val) => val === 'history' && fetchHistory()}>
+      <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); if (val === 'history') fetchHistory(); }}>
         <TabsList>
           <TabsTrigger value="buy"><CreditCard className="h-4 w-4 mr-2" />Buy PINs</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />Purchase History</TabsTrigger>
