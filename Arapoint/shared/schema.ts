@@ -200,3 +200,13 @@ export const virtual_accounts = pgTable('virtual_accounts', {
   created_at: timestamp('created_at').defaultNow(),
   updated_at: timestamp('updated_at').defaultNow(),
 });
+
+export const nbais_schools = pgTable('nbais_schools', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  state: varchar('state', { length: 100 }).notNull(),
+  school_name: varchar('school_name', { length: 500 }).notNull(),
+  school_value: varchar('school_value', { length: 500 }),
+  is_active: boolean('is_active').default(true),
+  created_at: timestamp('created_at').defaultNow(),
+  updated_at: timestamp('updated_at').defaultNow(),
+});
