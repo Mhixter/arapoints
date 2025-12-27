@@ -31,59 +31,71 @@ export async function scrapeNbaisSchools(browser: Browser): Promise<{ success: b
     
     console.log('[NBAIS Scraper] Starting school scraping...');
     
-    await page.goto('https://resultchecker.nbais.com.ng/', {
-      waitUntil: 'networkidle2',
-      timeout: 30000
-    });
-
-    await page.waitForSelector('select', { timeout: 10000 });
-
     for (const state of NIGERIAN_STATES) {
       try {
         console.log(`[NBAIS Scraper] Fetching schools for ${state}...`);
         
-        const stateSelector = 'select[name="state"], select#state, select:has(option[value*="State"])';
-        await page.waitForSelector(stateSelector, { timeout: 5000 });
-        
-        const stateFound = await page.evaluate((stateName: string, selector: string) => {
-          const stateSelect = document.querySelector(selector) as HTMLSelectElement;
-          if (!stateSelect) return false;
-          
-          for (let i = 0; i < stateSelect.options.length; i++) {
-            const opt = stateSelect.options[i];
-            if (opt.text.toLowerCase().includes(stateName.toLowerCase()) || 
-                opt.value.toLowerCase().includes(stateName.toLowerCase())) {
-              stateSelect.selectedIndex = i;
-              stateSelect.dispatchEvent(new Event('change', { bubbles: true }));
-              return true;
+        await page.goto('https://resultchecker.nbais.com.ng/', {
+          waitUntil: 'networkidle2',
+          timeout: 30000
+        });
+
+        await page.waitForSelector('select', { timeout: 10000 });
+
+        const allSelects = await page.$$('select');
+        console.log(`[NBAIS Scraper] Found ${allSelects.length} select elements on page`);
+
+        const stateFound = await page.evaluate((stateName: string) => {
+          const selects = Array.from(document.querySelectorAll('select'));
+          for (const select of selects) {
+            const sel = select as HTMLSelectElement;
+            for (let i = 0; i < sel.options.length; i++) {
+              const opt = sel.options[i];
+              if (opt.text.toLowerCase().includes(stateName.toLowerCase()) || 
+                  opt.value.toLowerCase().includes(stateName.toLowerCase())) {
+                sel.selectedIndex = i;
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                return { found: true, selectIndex: Array.from(selects).indexOf(sel) };
+              }
             }
           }
-          return false;
-        }, state, stateSelector);
+          return { found: false, selectIndex: -1 };
+        }, state);
 
-        if (!stateFound) {
-          console.log(`[NBAIS Scraper] State ${state} not found in dropdown`);
+        if (!stateFound.found) {
+          console.log(`[NBAIS Scraper] State ${state} not found in any dropdown`);
           continue;
         }
 
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        console.log(`[NBAIS Scraper] State ${state} found in select at index ${stateFound.selectIndex}`);
 
-        const schools = await page.evaluate(() => {
-          const schoolSelect = document.querySelector('select[name="school"], select#school') as HTMLSelectElement;
-          if (!schoolSelect) return [];
-          
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        const schools = await page.evaluate((stateSelectIdx: number) => {
+          const selects = Array.from(document.querySelectorAll('select'));
           const schoolList: { name: string; value: string }[] = [];
-          for (let i = 0; i < schoolSelect.options.length; i++) {
-            const opt = schoolSelect.options[i];
-            if (opt.value && opt.value !== '' && !opt.text.toLowerCase().includes('select')) {
-              schoolList.push({
-                name: opt.text.trim(),
-                value: opt.value
-              });
+          
+          for (let s = 0; s < selects.length; s++) {
+            if (s === stateSelectIdx) continue;
+            
+            const sel = selects[s] as HTMLSelectElement;
+            if (sel.options.length > 5) {
+              for (let i = 0; i < sel.options.length; i++) {
+                const opt = sel.options[i];
+                if (opt.value && opt.value !== '' && 
+                    !opt.text.toLowerCase().includes('select') &&
+                    !opt.text.toLowerCase().includes('choose')) {
+                  schoolList.push({
+                    name: opt.text.trim(),
+                    value: opt.value
+                  });
+                }
+              }
+              if (schoolList.length > 0) break;
             }
           }
           return schoolList;
-        });
+        }, stateFound.selectIndex);
 
         for (const school of schools) {
           allSchools.push({
