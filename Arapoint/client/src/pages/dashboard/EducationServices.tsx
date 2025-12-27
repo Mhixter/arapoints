@@ -139,6 +139,9 @@ export default function EducationServices() {
   const [nbaisYear, setNbaisYear] = useState(new Date().getFullYear().toString());
   const [nbaisMonth, setNbaisMonth] = useState('06');
   const [nbaisState, setNbaisState] = useState('');
+  const [nbaisSchool, setNbaisSchool] = useState('');
+  const [nbaisSchools, setNbaisSchools] = useState<{ schoolName: string; schoolValue: string }[]>([]);
+  const [loadingSchools, setLoadingSchools] = useState(false);
 
   const { data: dashboardData } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -148,6 +151,38 @@ export default function EducationServices() {
 
   const educationTotal = dashboardData?.stats?.educationVerifications || 0;
   const educationSuccess = dashboardData?.stats?.educationVerifications || 0;
+
+  // Fetch NBAIS schools when state changes
+  useEffect(() => {
+    const fetchSchools = async () => {
+      if (!nbaisState) {
+        setNbaisSchools([]);
+        setNbaisSchool('');
+        return;
+      }
+      
+      setLoadingSchools(true);
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch(`/api/education/nbais/schools/${encodeURIComponent(nbaisState)}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        const result = await response.json();
+        if (result.status === 'success' && result.data?.schools) {
+          setNbaisSchools(result.data.schools);
+        } else {
+          setNbaisSchools([]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch NBAIS schools', error);
+        setNbaisSchools([]);
+      } finally {
+        setLoadingSchools(false);
+      }
+    };
+    
+    fetchSchools();
+  }, [nbaisState]);
 
   // Fetch PIN stock on component mount
   const fetchPinStock = async () => {
@@ -301,9 +336,15 @@ export default function EducationServices() {
         }
         case 'nbais-result': {
           const examNumber = (form.querySelector('#nbais-number') as HTMLInputElement)?.value;
+          const pin = (form.querySelector('#nbais-pin') as HTMLInputElement)?.value;
+          const schoolFromInput = (form.querySelector('#nbais-school') as HTMLInputElement)?.value;
           jobResponse = await servicesApi.education.checkNBAIS({
             registrationNumber: examNumber,
             examYear: parseInt(nbaisYear),
+            state: nbaisState,
+            schoolName: nbaisSchool || schoolFromInput,
+            examMonth: nbaisMonth,
+            cardPin: pin,
           });
           break;
         }
@@ -420,7 +461,7 @@ export default function EducationServices() {
           // Check if it's comma-separated bytes (e.g., "37,80,68,70,45,...")
           if (result.pdfBase64.includes(',') && /^[\d,\s]+$/.test(result.pdfBase64.substring(0, 100))) {
             // It's comma-separated byte values - split and convert
-            const byteValues = result.pdfBase64.split(',').map(n => parseInt(n.trim(), 10));
+            const byteValues = result.pdfBase64.split(',').map((n: string) => parseInt(n.trim(), 10));
             const bytes = new Uint8Array(byteValues);
             blob = new Blob([bytes], { type: 'application/pdf' });
           } else {
@@ -1209,7 +1250,24 @@ export default function EducationServices() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="nbais-school">School Name</Label>
-                      <Input id="nbais-school" placeholder="Enter School Name" required />
+                      {nbaisSchools.length > 0 ? (
+                        <Select value={nbaisSchool} onValueChange={setNbaisSchool}>
+                          <SelectTrigger>
+                            <SelectValue placeholder={loadingSchools ? "Loading schools..." : "Select School"} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px] overflow-y-auto">
+                            {nbaisSchools.map((school, idx) => (
+                              <SelectItem key={idx} value={school.schoolValue}>{school.schoolName}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input 
+                          id="nbais-school" 
+                          placeholder={loadingSchools ? "Loading schools..." : (nbaisState ? "No schools found - enter manually" : "Select state first")} 
+                          disabled={loadingSchools}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
