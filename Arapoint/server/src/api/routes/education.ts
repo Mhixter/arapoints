@@ -7,8 +7,10 @@ import { logger } from '../../utils/logger';
 import { formatResponse, formatErrorResponse } from '../../utils/helpers';
 import { db } from '../../config/database';
 import { educationServices, servicePricing, educationPins, educationPinOrders, users } from '../../db/schema';
+import { nbais_schools } from '../../../../shared/schema';
 import { eq, desc, and, sql, count } from 'drizzle-orm';
 import { sendEmail } from '../../services/emailService';
+import { getSchoolsByState, getSchoolsCount } from '../../rpa/workers/nbaisSchoolScraper';
 
 const router = Router();
 router.use(authMiddleware);
@@ -606,6 +608,37 @@ router.get('/pins/orders/:orderId', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Get PIN order error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to get PIN order'));
+  }
+});
+
+router.get('/nbais/schools/:state', async (req: Request, res: Response) => {
+  try {
+    const { state } = req.params;
+    
+    if (!state) {
+      return res.status(400).json(formatErrorResponse(400, 'State is required'));
+    }
+
+    const schools = await getSchoolsByState(state);
+    
+    res.json(formatResponse('success', 200, 'Schools retrieved', { 
+      state,
+      schools,
+      count: schools.length 
+    }));
+  } catch (error: any) {
+    logger.error('Get NBAIS schools error', { error: error.message, state: req.params.state });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get schools'));
+  }
+});
+
+router.get('/nbais/schools-count', async (req: Request, res: Response) => {
+  try {
+    const count = await getSchoolsCount();
+    res.json(formatResponse('success', 200, 'Schools count retrieved', { count }));
+  } catch (error: any) {
+    logger.error('Get schools count error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get schools count'));
   }
 });
 

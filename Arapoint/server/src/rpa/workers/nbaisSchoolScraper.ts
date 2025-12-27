@@ -1,7 +1,12 @@
 import { Browser, Page } from 'puppeteer';
-import { db } from '../../db';
+import { db } from '../../config/database';
 import { nbais_schools } from '../../../../shared/schema';
 import { eq } from 'drizzle-orm';
+
+interface SchoolRow {
+  schoolName: string;
+  schoolValue: string | null;
+}
 
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River",
@@ -135,7 +140,7 @@ export async function scrapeNbaisSchools(browser: Browser): Promise<{ success: b
 }
 
 export async function getSchoolsByState(state: string): Promise<{ schoolName: string; schoolValue: string }[]> {
-  const schools = await db
+  const schools: SchoolRow[] = await db
     .select({
       schoolName: nbais_schools.school_name,
       schoolValue: nbais_schools.school_value
@@ -143,7 +148,7 @@ export async function getSchoolsByState(state: string): Promise<{ schoolName: st
     .from(nbais_schools)
     .where(eq(nbais_schools.state, state));
 
-  return schools.map(s => ({
+  return schools.map((s: SchoolRow) => ({
     schoolName: s.schoolName,
     schoolValue: s.schoolValue || s.schoolName
   }));
