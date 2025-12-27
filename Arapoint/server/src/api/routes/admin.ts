@@ -29,8 +29,11 @@ import {
   educationPins,
   educationPinOrders,
   a2cAgents,
-  a2cRequests
+  a2cRequests,
+  nbaisSchools
 } from '../../db/schema';
+import { scrapeNbaisSchools, getSchoolsCount } from '../../rpa/workers/nbaisSchoolScraper';
+import { browserPool } from '../../rpa/browserPool';
 import bcrypt from 'bcryptjs';
 import { eq, desc, count, sql } from 'drizzle-orm';
 
@@ -2306,6 +2309,52 @@ router.get('/a2c-requests', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Get A2C requests error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to get A2C requests'));
+  }
+});
+
+// NBAIS Schools Management
+router.get('/nbais-schools/stats', async (req: Request, res: Response) => {
+  try {
+    const schoolCount = await getSchoolsCount();
+    res.json(formatResponse('success', 200, 'NBAIS schools stats retrieved', { 
+      totalSchools: schoolCount,
+      lastUpdated: null
+    }));
+  } catch (error: any) {
+    logger.error('Get NBAIS schools stats error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get NBAIS schools stats'));
+  }
+});
+
+router.post('/nbais-schools/scrape', async (req: Request, res: Response) => {
+  try {
+    logger.info('Admin triggered NBAIS schools scraping', { adminId: req.userId });
+    
+    const poolResult = await browserPool.acquire();
+    if (!poolResult) {
+      return res.status(503).json(formatErrorResponse(503, 'Browser pool unavailable. Please try again later.'));
+    }
+    
+    const { browser, release } = poolResult;
+    
+    try {
+      const result = await scrapeNbaisSchools(browser);
+      
+      if (result.success) {
+        logger.info('NBAIS schools scraping completed', { count: result.count });
+        res.json(formatResponse('success', 200, result.message, { 
+          schoolsScraped: result.count 
+        }));
+      } else {
+        logger.error('NBAIS schools scraping failed', { message: result.message });
+        res.status(500).json(formatErrorResponse(500, result.message));
+      }
+    } finally {
+      await release();
+    }
+  } catch (error: any) {
+    logger.error('NBAIS schools scraping error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to scrape NBAIS schools'));
   }
 });
 
