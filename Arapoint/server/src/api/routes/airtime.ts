@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { walletService } from '../../services/walletService';
 import { vtpassService } from '../../services/vtpassService';
+import { pricingService } from '../../services/pricingService';
 import { airtimeBuySchema } from '../validators/vtu';
 import { logger } from '../../utils/logger';
 import { formatResponse, formatErrorResponse } from '../../utils/helpers';
@@ -134,7 +135,7 @@ router.get('/history', async (req: Request, res: Response) => {
   }
 });
 
-const AIRTIME_TO_CASH_RATES: Record<string, number> = {
+const DEFAULT_A2C_RATES: Record<string, number> = {
   'mtn': 80,
   'airtel': 75,
   'glo': 70,
@@ -167,7 +168,7 @@ router.post('/to-cash', async (req: Request, res: Response) => {
       return res.status(400).json(formatErrorResponse(400, 'Maximum amount is ₦50,000'));
     }
 
-    const rate = AIRTIME_TO_CASH_RATES[network.toLowerCase()] || 70;
+    const rate = await pricingService.getA2CRate(network.toLowerCase()) || DEFAULT_A2C_RATES[network.toLowerCase()] || 70;
     const calculatedCashValue = amount * rate / 100;
 
     const today = new Date();
@@ -354,8 +355,9 @@ router.get('/to-cash/requests', async (req: Request, res: Response) => {
 
 router.get('/to-cash/rates', async (req: Request, res: Response) => {
   try {
+    const rates = await pricingService.getA2CRates();
     res.json(formatResponse('success', 200, 'Conversion rates', { 
-      rates: AIRTIME_TO_CASH_RATES,
+      rates,
       minAmount: 100,
       maxAmount: 50000,
     }));

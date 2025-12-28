@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { jobService } from '../../services/jobService';
+import { pricingService } from '../../services/pricingService';
 import { logger } from '../../utils/logger';
 import { formatResponse, formatErrorResponse } from '../../utils/helpers';
 import { db } from '../../config/database';
@@ -190,6 +191,29 @@ router.delete('/pricing/:id', async (req: Request, res: Response) => {
   } catch (error: any) {
     logger.error('Delete pricing error', { error: error.message });
     res.status(500).json(formatErrorResponse(500, 'Failed to delete pricing'));
+  }
+});
+
+router.post('/pricing/seed', async (req: Request, res: Response) => {
+  try {
+    const result = await pricingService.seedDefaultPrices();
+    pricingService.clearCache();
+    
+    logger.info('Pricing seeded', { ...result, adminId: req.userId });
+    res.json(formatResponse('success', 200, 'Default prices seeded', result));
+  } catch (error: any) {
+    logger.error('Seed pricing error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to seed pricing'));
+  }
+});
+
+router.get('/pricing/all', async (req: Request, res: Response) => {
+  try {
+    const pricing = await pricingService.getAllPricing();
+    res.json(formatResponse('success', 200, 'All pricing retrieved', { pricing }));
+  } catch (error: any) {
+    logger.error('Get all pricing error', { error: error.message });
+    res.status(500).json(formatErrorResponse(500, 'Failed to get pricing'));
   }
 });
 

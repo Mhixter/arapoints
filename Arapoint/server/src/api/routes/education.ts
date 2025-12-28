@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { jobService } from '../../services/jobService';
 import { walletService } from '../../services/walletService';
+import { pricingService } from '../../services/pricingService';
 import { jambSchema, waecSchema, necoSchema, nabtebSchema, nbaisSchema } from '../validators/education';
 import { logger } from '../../utils/logger';
 import { formatResponse, formatErrorResponse } from '../../utils/helpers';
@@ -14,34 +15,6 @@ import { getSchoolsByState, getSchoolsCount } from '../../rpa/workers/nbaisSchoo
 const router = Router();
 router.use(authMiddleware);
 
-const DEFAULT_PRICES: Record<string, number> = {
-  jamb: 1000,
-  waec: 1000,
-  neco: 1000,
-  nabteb: 1000,
-  nbais: 1000,
-};
-
-async function getServicePrice(serviceType: string): Promise<number> {
-  try {
-    const [pricing] = await db.select()
-      .from(servicePricing)
-      .where(and(
-        eq(servicePricing.serviceType, serviceType),
-        eq(servicePricing.isActive, true)
-      ))
-      .limit(1);
-    
-    if (pricing?.price) {
-      return parseFloat(pricing.price);
-    }
-    return DEFAULT_PRICES[serviceType] || 1000;
-  } catch (error: any) {
-    logger.error('Error fetching service price', { serviceType, error: error.message });
-    return DEFAULT_PRICES[serviceType] || 1000;
-  }
-}
-
 router.post('/jamb', async (req: Request, res: Response) => {
   try {
     const validation = jambSchema.safeParse(req.body);
@@ -51,7 +24,7 @@ router.post('/jamb', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = await getServicePrice('jamb');
+    const price = await pricingService.getPrice('jamb');
     await walletService.deductBalance(req.userId!, price, 'JAMB Score Lookup');
 
     const job = await jobService.createEducationJob(req.userId!, {
@@ -86,7 +59,7 @@ router.post('/waec', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = await getServicePrice('waec');
+    const price = await pricingService.getPrice('waec');
     await walletService.deductBalance(req.userId!, price, 'WAEC Result Lookup');
 
     const job = await jobService.createEducationJob(req.userId!, {
@@ -124,7 +97,7 @@ router.post('/neco', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = await getServicePrice('neco');
+    const price = await pricingService.getPrice('neco');
     await walletService.deductBalance(req.userId!, price, 'NECO Result Lookup');
 
     const job = await jobService.createEducationJob(req.userId!, {
@@ -161,7 +134,7 @@ router.post('/nabteb', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = await getServicePrice('nabteb');
+    const price = await pricingService.getPrice('nabteb');
     await walletService.deductBalance(req.userId!, price, 'NABTEB Result Lookup');
 
     const job = await jobService.createEducationJob(req.userId!, {
@@ -198,7 +171,7 @@ router.post('/nbais', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = await getServicePrice('nbais');
+    const price = await pricingService.getPrice('nbais');
     await walletService.deductBalance(req.userId!, price, 'NBAIS Result Lookup');
 
     const job = await jobService.createEducationJob(req.userId!, {
@@ -404,7 +377,7 @@ router.get('/pins/stock', async (req: Request, res: Response) => {
         .from(educationPins)
         .where(sql`${educationPins.examType} = ${examType} AND ${educationPins.status} = 'unused'`);
       
-      const price = await getServicePrice(`${examType}_pin`);
+      const price = await pricingService.getPrice(`${examType}_pin`);
       
       stock[examType] = {
         available: (stockCount?.count || 0) > 0,
@@ -434,7 +407,7 @@ router.post('/pins/purchase', async (req: Request, res: Response) => {
     }
 
     const normalizedExamType = examType.toLowerCase();
-    const price = await getServicePrice(`${normalizedExamType}_pin`);
+    const price = await pricingService.getPrice(`${normalizedExamType}_pin`);
 
     // Check stock availability first
     const [stockCount] = await db.select({ count: count() })
