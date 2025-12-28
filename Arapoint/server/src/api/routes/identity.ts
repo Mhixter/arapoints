@@ -98,11 +98,13 @@ const verifyNINWithPhoneFallback = async (nin: string, phone: string) => {
 const router = Router();
 router.use(authMiddleware);
 
-const SERVICE_PRICES = {
-  nin_lookup: 150,
-  nin_phone: 200,
-  lost_nin: 500,
-  vnin: 200,
+const getServicePrice = async (serviceType: string, defaultPrice: number): Promise<number> => {
+  try {
+    const { pricingService } = await import('../../services/pricingService');
+    return await pricingService.getPrice(serviceType);
+  } catch {
+    return defaultPrice;
+  }
 };
 
 router.post('/nin', async (req: Request, res: Response) => {
@@ -114,7 +116,7 @@ router.post('/nin', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = SERVICE_PRICES.nin_lookup;
+    const price = await getServicePrice('nin_lookup', 150);
     
     const balance = await walletService.getBalance(req.userId!);
     if (balance.balance < price) {
@@ -217,7 +219,7 @@ router.post('/vnin', async (req: Request, res: Response) => {
       return res.status(400).json(formatErrorResponse(400, 'Valid vNIN is required'));
     }
 
-    const price = SERVICE_PRICES.vnin;
+    const price = await getServicePrice('vnin', 200);
     
     const balance = await walletService.getBalance(req.userId!);
     if (balance.balance < price) {
@@ -293,7 +295,7 @@ router.post('/nin-phone', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = SERVICE_PRICES.nin_phone;
+    const price = await getServicePrice('nin_phone', 200);
     
     const balance = await walletService.getBalance(req.userId!);
     if (balance.balance < price) {
@@ -368,7 +370,7 @@ router.post('/lost-nin', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = SERVICE_PRICES.lost_nin;
+    const price = await getServicePrice('lost_nin', 500);
 
     await db.insert(identityVerifications).values({
       userId: req.userId!,
@@ -398,17 +400,6 @@ const generateTrackingId = (): string => {
   return `${prefix}${timestamp}${random}`.substring(0, 15);
 };
 
-const getServicePrice = async (serviceType: string, defaultPrice: number): Promise<number> => {
-  try {
-    const [pricing] = await db.select()
-      .from(servicePricing)
-      .where(eq(servicePricing.serviceType, serviceType))
-      .limit(1);
-    return pricing ? parseFloat(pricing.price) : defaultPrice;
-  } catch {
-    return defaultPrice;
-  }
-};
 
 router.post('/ipe-clearance', async (req: Request, res: Response) => {
   try {

@@ -4,29 +4,41 @@ import { eq, and } from 'drizzle-orm';
 import { logger } from '../utils/logger';
 
 const DEFAULT_PRICES: Record<string, { price: number; name: string; description: string }> = {
+  // Education services
   jamb: { price: 1000, name: 'JAMB Score Lookup', description: 'JAMB result checking service' },
   waec: { price: 1000, name: 'WAEC Result Lookup', description: 'WAEC result checking service' },
   neco: { price: 1000, name: 'NECO Result Lookup', description: 'NECO result checking service' },
   nabteb: { price: 1000, name: 'NABTEB Result Lookup', description: 'NABTEB result checking service' },
   nbais: { price: 1000, name: 'NBAIS Result Lookup', description: 'NBAIS result checking service' },
   
-  nin_basic: { price: 500, name: 'NIN Basic Lookup', description: 'Basic NIN verification' },
-  nin_standard: { price: 1000, name: 'NIN Standard Lookup', description: 'Standard NIN verification with details' },
-  nin_premium: { price: 1500, name: 'NIN Premium Lookup', description: 'Premium NIN verification with full details' },
+  // NIN Services
+  nin_lookup: { price: 150, name: 'NIN Lookup', description: 'Basic NIN verification' },
+  nin_phone: { price: 200, name: 'NIN + Phone Lookup', description: 'NIN verification with phone number' },
+  vnin: { price: 200, name: 'vNIN Lookup', description: 'Virtual NIN verification' },
+  lost_nin: { price: 500, name: 'Lost NIN Recovery', description: 'Lost NIN recovery service' },
+  ipe_clearance: { price: 1000, name: 'IPE Clearance', description: 'IPE clearance check' },
+  validation_nin: { price: 1000, name: 'NIN Validation', description: 'NIN validation service' },
+  nin_personalization: { price: 1500, name: 'NIN Personalization', description: 'NIN card personalization' },
+  birth_attestation: { price: 2000, name: 'Birth Attestation', description: 'Birth attestation service' },
+  nin_tracking: { price: 250, name: 'NIN Tracking', description: 'NIN application tracking' },
   
-  bvn_basic: { price: 500, name: 'BVN Basic Lookup', description: 'Basic BVN verification' },
-  bvn_standard: { price: 1000, name: 'BVN Standard Lookup', description: 'Standard BVN verification' },
+  // BVN Services
+  bvn_retrieval: { price: 100, name: 'BVN Retrieval', description: 'Basic BVN verification' },
+  bvn_retrieval_premium: { price: 200, name: 'BVN Retrieval Premium', description: 'Premium BVN verification with full details' },
+  bvn_digital_card: { price: 500, name: 'BVN Digital Card', description: 'BVN digital card generation' },
+  bvn_modification: { price: 1000, name: 'BVN Modification', description: 'BVN modification request' },
   
-  birth_certificate: { price: 2000, name: 'Birth Certificate', description: 'Birth certificate verification' },
-  
+  // CAC Services
   cac_basic: { price: 2000, name: 'CAC Basic Search', description: 'Basic CAC company search' },
   cac_full: { price: 5000, name: 'CAC Full Report', description: 'Full CAC company report' },
   
+  // Education PINs
   waec_pin: { price: 4500, name: 'WAEC Scratch Card', description: 'WAEC result checker PIN' },
   neco_pin: { price: 1200, name: 'NECO Scratch Card', description: 'NECO result checker PIN' },
   nabteb_pin: { price: 1200, name: 'NABTEB Scratch Card', description: 'NABTEB result checker PIN' },
   nbais_pin: { price: 1000, name: 'NBAIS Scratch Card', description: 'NBAIS result checker PIN' },
   
+  // Airtime to Cash rates
   a2c_mtn: { price: 80, name: 'MTN Airtime to Cash Rate', description: 'MTN conversion rate (%)' },
   a2c_airtel: { price: 75, name: 'Airtel Airtime to Cash Rate', description: 'Airtel conversion rate (%)' },
   a2c_glo: { price: 70, name: 'Glo Airtime to Cash Rate', description: 'Glo conversion rate (%)' },

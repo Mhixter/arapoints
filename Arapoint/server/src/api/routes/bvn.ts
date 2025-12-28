@@ -48,11 +48,13 @@ const verifyBVNWithFallback = async (bvn: string, isPremium: boolean) => {
 const router = Router();
 router.use(authMiddleware);
 
-const SERVICE_PRICES = {
-  retrieval: 100,
-  retrieval_premium: 200,
-  digital_card: 500,
-  modification: 1000,
+const getServicePrice = async (serviceType: string, defaultPrice: number): Promise<number> => {
+  try {
+    const { pricingService } = await import('../../services/pricingService');
+    return await pricingService.getPrice(serviceType);
+  } catch {
+    return defaultPrice;
+  }
 };
 
 router.post('/retrieve', async (req: Request, res: Response) => {
@@ -65,7 +67,7 @@ router.post('/retrieve', async (req: Request, res: Response) => {
     }
 
     const isPremium = req.body.premium === true;
-    const price = isPremium ? SERVICE_PRICES.retrieval_premium : SERVICE_PRICES.retrieval;
+    const price = await getServicePrice(isPremium ? 'bvn_retrieval_premium' : 'bvn_retrieval', isPremium ? 200 : 100);
     
     const balance = await walletService.getBalance(req.userId!);
     if (balance.balance < price) {
@@ -145,7 +147,7 @@ router.post('/digital-card', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = SERVICE_PRICES.digital_card;
+    const price = await getServicePrice('bvn_digital_card', 500);
     
     const balance = await walletService.getBalance(req.userId!);
     if (balance.balance < price) {
@@ -219,7 +221,7 @@ router.post('/modify', async (req: Request, res: Response) => {
       ));
     }
 
-    const price = SERVICE_PRICES.modification;
+    const price = await getServicePrice('bvn_modification', 1000);
     const requestId = generateReferenceId();
 
     await db.insert(bvnServices).values({
