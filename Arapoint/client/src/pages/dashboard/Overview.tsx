@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2, AlertTriangle } from "lucide-react";
+import { CheckCircle2, CreditCard, ArrowUpRight, ArrowDownRight, ShieldCheck, GraduationCap, Loader2, Copy, Building2, AlertTriangle, Smartphone, Zap, Tv, Banknote, FileText, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useEffect, useState, useCallback } from "react";
@@ -317,6 +317,96 @@ export default function Overview() {
           className="text-green-600"
         />
       </div>
+
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <div>
+            <CardTitle>Our Services</CardTitle>
+            <CardDescription>Access all platform services</CardDescription>
+          </div>
+          <Link href="/dashboard/services">
+            <Button variant="outline" size="sm" className="gap-1">
+              View More <ChevronRight className="h-4 w-4" />
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            <Link href="/dashboard/identity">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <ShieldCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Identity</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/education">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <GraduationCap className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Education</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/airtime">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Smartphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Airtime</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/data">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Zap className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Data</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/electricity">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Zap className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Electricity</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/cable">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Tv className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Cable TV</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/airtime-to-cash">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <Banknote className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <span className="text-xs font-medium text-center">A2C</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/cac">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <FileText className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <span className="text-xs font-medium text-center">CAC</span>
+              </div>
+            </Link>
+            <Link href="/dashboard/buy-pins">
+              <div className="flex flex-col items-center p-3 rounded-lg border border-border/40 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer group">
+                <div className="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                  <CreditCard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <span className="text-xs font-medium text-center">Buy PINs</span>
+              </div>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
         <Card className="lg:col-span-2 border-border/60 shadow-sm">
