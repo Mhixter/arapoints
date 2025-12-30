@@ -31,7 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const BVN_SERVICES = [
   { id: "retrieval", name: "BVN Retrieval", icon: FileSearch, color: "text-cyan-600", bg: "bg-cyan-100 dark:bg-cyan-900/20", desc: "Recover lost BVN details", price: 100 },
   { id: "card", name: "BVN Card", icon: CreditCard, color: "text-indigo-600", bg: "bg-indigo-100 dark:bg-indigo-900/20", desc: "Print BVN Digital Card", price: 500 },
-  { id: "modification", name: "BVN Modification", icon: FilePenLine, color: "text-violet-600", bg: "bg-violet-100 dark:bg-violet-900/20", desc: "Update via Agent Enrollment", price: 0 },
+  { id: "modification", name: "BVN Modification", icon: FilePenLine, color: "text-violet-600", bg: "bg-violet-100 dark:bg-violet-900/20", desc: "Agent enrollment only (not bank)", price: 2500 },
 ];
 
 export default function BVNRetrieval() {
@@ -366,7 +366,7 @@ export default function BVNRetrieval() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-heading font-bold tracking-tight">BVN Modification</h2>
-            <p className="text-muted-foreground">Update your BVN via Agent Enrollment (FREE - No wallet deduction)</p>
+            <p className="text-muted-foreground">Update your BVN via Agent Enrollment - ₦2,500 (includes affidavit fees)</p>
           </div>
           <Button variant="outline" onClick={() => {
             setSelectedService(null);
@@ -384,14 +384,17 @@ export default function BVNRetrieval() {
           </Button>
         </div>
 
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
-            <Shield className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold text-blue-800 dark:text-blue-200">Agent Enrollment Process</p>
-              <p className="text-blue-700 dark:text-blue-300 mt-1">
-                Your request will be handled by our identity agents (not bank enrollment). 
-                Processing typically takes 3-5 business days. <strong>This service is FREE</strong> - no wallet deduction will be made.
+              <p className="font-semibold text-amber-800 dark:text-amber-200">Important: Agent Enrollment Only</p>
+              <p className="text-amber-700 dark:text-amber-300 mt-1">
+                <strong>DO NOT submit if your BVN was enrolled at a BANK.</strong> This service is ONLY for BVNs enrolled by agents. 
+                If you were enrolled at a bank branch, please visit the bank for modifications.
+              </p>
+              <p className="text-amber-700 dark:text-amber-300 mt-2">
+                <strong>Cost: ₦2,500</strong> (includes affidavit and agent processing fees). Processing takes 3-5 business days.
               </p>
             </div>
           </div>
@@ -522,7 +525,7 @@ export default function BVNRetrieval() {
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                         Submitting...
                       </>
-                    ) : "Submit Modification Request (FREE)"}
+                    ) : "Submit Modification Request (₦2,500)"}
                   </Button>
                 </form>
               </CardContent>
@@ -583,9 +586,11 @@ export default function BVNRetrieval() {
               <AlertDialogTitle>Confirm BVN Modification Request</AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div>
-                  <p className="mb-3">
-                    You are about to submit a BVN modification request for <strong>Agent Enrollment</strong>.
-                  </p>
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-3">
+                    <p className="text-amber-800 dark:text-amber-200 text-sm font-semibold">
+                      This service is ONLY for agent-enrolled BVNs. If your BVN was enrolled at a bank, please visit the bank instead.
+                    </p>
+                  </div>
                   <div className="bg-muted/50 rounded-lg p-3 mb-3 space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span>BVN:</span>
@@ -599,13 +604,13 @@ export default function BVNRetrieval() {
                       <span>Phone:</span>
                       <span>{phoneNumber}</span>
                     </div>
-                    <div className="flex justify-between font-semibold text-green-600">
+                    <div className="flex justify-between font-semibold">
                       <span>Cost:</span>
-                      <span>FREE (No Deduction)</span>
+                      <span className="text-primary">₦2,500</span>
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Your request will be handled by our identity agents. Processing typically takes 3-5 business days.
+                    Amount includes affidavit and agent processing fees. Processing typically takes 3-5 business days.
                   </p>
                 </div>
               </AlertDialogDescription>

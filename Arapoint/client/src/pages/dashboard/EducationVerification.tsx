@@ -8,6 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { GraduationCap, Loader2, Award, Download, Printer, AlertCircle } from "lucide-react";
 import { servicesApi } from "@/lib/api/services";
 import jambLogo from '@assets/Official_JAMB_logo-removebg-preview_1764215962098.png';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const ExamLogo = ({ name, color, image }: { name: string, color?: string, image?: string }) => {
   if (image) {
@@ -31,6 +41,7 @@ export default function EducationVerification() {
   const [token, setToken] = useState("");
   const [regNumber, setRegNumber] = useState("");
   const [activeProvider, setActiveProvider] = useState<string>("jamb");
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const pollJobStatus = async (jobId: string): Promise<any> => {
     const maxAttempts = 60;
@@ -55,8 +66,21 @@ export default function EducationVerification() {
     throw new Error('Request timed out. Please try again.');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!regNumber.trim()) {
+      setError("Please enter registration number");
+      return;
+    }
+    if (activeProvider !== "jamb" && !token.trim()) {
+      setError("Please enter scratch card PIN/Token");
+      return;
+    }
+    setShowConfirmDialog(true);
+  };
+
+  const handleConfirmedSubmit = async () => {
+    setShowConfirmDialog(false);
     setIsLoading(true);
     setResult(null);
     setError(null);
@@ -69,9 +93,22 @@ export default function EducationVerification() {
           registrationNumber: regNumber.toUpperCase(),
           examYear: parseInt(examYear)
         });
+      } else if (activeProvider === "waec") {
+        response = await servicesApi.education.checkWAEC({
+          registrationNumber: regNumber.toUpperCase(),
+          examYear: parseInt(examYear),
+          examType: examType === 'school_candidate' ? 'WASSCE' : 'GCE',
+          cardPin: token
+        });
+      } else if (activeProvider === "neco") {
+        response = await servicesApi.education.checkNECO({
+          registrationNumber: regNumber.toUpperCase(),
+          examYear: parseInt(examYear),
+          examType: examType,
+          cardPin: token
+        });
       } else {
-        response = await servicesApi.education.verify({
-          serviceType: activeProvider,
+        response = await servicesApi.education.checkNABTEB({
           registrationNumber: regNumber.toUpperCase(),
           examYear: parseInt(examYear),
           examType: examType,
@@ -141,7 +178,7 @@ export default function EducationVerification() {
                   </div>
                 )}
                 <div className="border-t pt-6">
-                  <form onSubmit={handleSubmit} className="grid gap-3 md:gap-4 lg:gap-6">
+                  <form onSubmit={handleFormSubmit} className="grid gap-3 md:gap-4 lg:gap-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                       <div className="space-y-2">
                         <Label>Registration Number *</Label>
@@ -320,6 +357,56 @@ export default function EducationVerification() {
           </Card>
         </div>
       </div>
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Result Check</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p className="mb-3">
+                  You are about to check your <strong>{activeProvider.toUpperCase()}</strong> result. Please confirm the details below:
+                </p>
+                <div className="bg-muted/50 rounded-lg p-3 mb-3 space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Exam Body:</span>
+                    <span className="font-semibold">{activeProvider.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Registration Number:</span>
+                    <span className="font-mono">{regNumber.toUpperCase()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Exam Year:</span>
+                    <span>{examYear}</span>
+                  </div>
+                  {activeProvider !== "jamb" && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Exam Type:</span>
+                        <span>{examType === 'school_candidate' ? 'School Candidate' : 'Private Candidate'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>PIN/Token:</span>
+                        <span className="font-mono">{token.substring(0, 4)}****</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  This will use your scratch card PIN/token to check the result. Once used, the PIN cannot be reused.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedSubmit}>
+              Check Result
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

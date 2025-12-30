@@ -221,7 +221,15 @@ router.post('/modify', async (req: Request, res: Response) => {
       ));
     }
 
+    const price = await getServicePrice('bvn_modification', 2500);
     const requestId = generateReferenceId();
+
+    const balance = await walletService.getBalance(req.userId!);
+    if (balance.balance < price) {
+      return res.status(402).json(formatErrorResponse(402, `Insufficient wallet balance. You need ₦${price.toLocaleString()} but have ₦${balance.balance.toLocaleString()}.`));
+    }
+
+    await walletService.deductBalance(req.userId!, price, 'BVN Modification Request', 'bvn_modification');
 
     await db.insert(bvnServices).values({
       userId: req.userId!,
@@ -232,13 +240,14 @@ router.post('/modify', async (req: Request, res: Response) => {
       status: 'pending',
     });
 
-    logger.info('BVN modification request', { userId: req.userId, requestId });
+    logger.info('BVN modification request', { userId: req.userId, requestId, price });
 
-    res.status(202).json(formatResponse('success', 202, 'BVN modification request submitted. This service requires agent enrollment processing.', {
+    res.status(202).json(formatResponse('success', 202, 'BVN modification request submitted. Processing requires affidavit and agent fees.', {
       requestId,
-      message: 'Your request will be handled by our identity agents (not bank enrollment). Processing typically takes 3-5 business days.',
+      message: 'Your request will be processed by our identity agents. This service is ONLY for agent-enrolled BVNs (not bank enrollments). Processing typically takes 3-5 business days.',
       estimatedTime: '3-5 business days',
-      price: 0,
+      price,
+      amountCharged: price,
     }));
   } catch (error: any) {
     logger.error('BVN modification error', { error: error.message, userId: req.userId });
