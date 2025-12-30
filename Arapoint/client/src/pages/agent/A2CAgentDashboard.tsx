@@ -635,23 +635,23 @@ export default function A2CAgentDashboard() {
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4 py-4">
-              <div className="p-4 bg-gray-50 rounded-lg space-y-2 text-sm">
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tracking ID</span>
-                  <span className="font-mono">{selectedRequest.trackingId}</span>
+                  <span className="font-mono text-foreground">{selectedRequest.trackingId}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Amount</span>
-                  <span>₦{parseFloat(selectedRequest.airtimeAmount || 0).toLocaleString()}</span>
+                  <span className="text-foreground">₦{parseFloat(selectedRequest.airtimeAmount || 0).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Pay Out</span>
-                  <span className="font-bold text-green-600">₦{parseFloat(selectedRequest.cashAmount || 0).toLocaleString()}</span>
+                  <span className="font-bold text-green-600 dark:text-green-400">₦{parseFloat(selectedRequest.cashAmount || 0).toLocaleString()}</span>
                 </div>
-                <div className="border-t pt-2 mt-2">
+                <div className="border-t dark:border-gray-700 pt-2 mt-2">
                   <p className="text-muted-foreground">Pay to:</p>
-                  <p className="font-medium">{selectedRequest.bankName}</p>
-                  <p className="font-mono">{selectedRequest.accountNumber}</p>
+                  <p className="font-medium text-foreground">{selectedRequest.bankName}</p>
+                  <p className="font-mono text-foreground">{selectedRequest.accountNumber}</p>
                   <p className="text-muted-foreground">{selectedRequest.accountName}</p>
                 </div>
                 <div className="flex justify-between mt-2">
