@@ -180,27 +180,45 @@ export default function BuyPINs() {
   };
 
   const handleDownload = async () => {
-    if (!receiptRef.current || !selectedOrder) return;
+    if (!selectedOrder) return;
     setIsDownloading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 100));
-      const element = receiptRef.current;
-      const canvas = await html2canvas(element, { 
-        scale: 2, 
-        backgroundColor: '#ffffff',
-        useCORS: true,
-        logging: false,
-        allowTaint: true,
-        foreignObjectRendering: false,
-      });
-      const dataUrl = canvas.toDataURL('image/png');
+      const textContent = `
+========================================
+           ARAPOINT
+      Education PIN Receipt
+========================================
+
+Order ID:    ${selectedOrder.id?.substring(0, 8)}...
+Exam Type:   ${selectedOrder.examType?.toUpperCase()}
+Amount:      ₦${selectedOrder.amount?.toLocaleString()}
+Date:        ${new Date(selectedOrder.createdAt || Date.now()).toLocaleString()}
+
+----------------------------------------
+         YOUR PIN CODE
+----------------------------------------
+
+   ${selectedOrder.deliveredPin}
+
+----------------------------------------
+
+Keep this receipt safe.
+No refunds after delivery.
+
+Thank you for using Arapoint!
+========================================
+      `.trim();
+
+      const blob = new Blob([textContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `${selectedOrder.examType?.toUpperCase()}_PIN_Receipt_${selectedOrder.id?.substring(0, 8)}.png`;
-      link.href = dataUrl;
+      link.download = `${selectedOrder.examType?.toUpperCase()}_PIN_Receipt_${selectedOrder.id?.substring(0, 8)}.txt`;
+      link.href = url;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast({ title: "Downloaded", description: "Receipt saved as image" });
+      URL.revokeObjectURL(url);
+      toast({ title: "Downloaded", description: "Receipt saved as text file" });
     } catch (error) {
       console.error('Download error:', error);
       toast({ title: "Error", description: "Failed to download receipt", variant: "destructive" });
