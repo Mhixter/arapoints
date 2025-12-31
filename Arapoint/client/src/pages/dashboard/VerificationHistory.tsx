@@ -36,13 +36,18 @@ export default function VerificationHistory() {
   const { toast } = useToast();
   const [downloading, setDownloading] = useState<string | null>(null);
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, refetch, isRefetching, error, dataUpdatedAt } = useQuery({
     queryKey: ['education-history'],
     queryFn: () => servicesApi.education.getHistory(),
-    staleTime: 30000,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   const history: EducationServiceRecord[] = data || [];
+  const lastUpdated = dataUpdatedAt ? new Date(dataUpdatedAt) : null;
 
   const getStatusBadge = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -155,6 +160,11 @@ export default function VerificationHistory() {
         <div>
           <h2 className="text-3xl font-heading font-bold tracking-tight">Verification History</h2>
           <p className="text-muted-foreground">View all your past education verification requests</p>
+          {lastUpdated && !isLoading && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Last updated: {lastUpdated.toLocaleTimeString()}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button 
@@ -173,6 +183,23 @@ export default function VerificationHistory() {
           </Link>
         </div>
       </div>
+
+      {error && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/30">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+              <AlertCircle className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Failed to load history</p>
+                <p className="text-sm">Check your internet connection and try refreshing.</p>
+              </div>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={() => refetch()}>
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
