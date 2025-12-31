@@ -218,48 +218,89 @@
 
 /* Print Styles - Only print receipt content */
 @media print {
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
+  /* Hide everything except print content */
+  html, body {
+    background: white !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Hide all elements by default */
+  body > *:not([role="dialog"]),
+  header, nav, aside, footer,
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Hide dialog overlay/backdrop */
+  [data-radix-dialog-overlay],
+  [role="dialog"]::before {
+    display: none !important;
+    background: transparent !important;
+  }
+  
+  /* Make dialog visible and positioned for print */
+  [role="dialog"] {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
   }
   
   /* Show only receipt content */
-  .print-receipt,
-  .print-receipt * {
-    visibility: visible;
-  }
-  
-  /* Position receipt at top of page */
   .print-receipt {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    padding: 20px;
+    display: block !important;
+    visibility: visible !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 20px !important;
+    margin: 0 !important;
     background: white !important;
-  }
-  
-  /* Remove backgrounds and shadows for clean print */
-  .print-receipt {
     box-shadow: none !important;
     border: none !important;
+    page-break-inside: avoid;
+  }
+  
+  .print-receipt * {
+    visibility: visible !important;
   }
   
   /* Ensure text is black for better print quality */
   .print-receipt,
   .print-receipt p,
   .print-receipt span,
+  .print-receipt div,
   .print-receipt h1,
   .print-receipt h2,
   .print-receipt h3,
   .print-receipt h4 {
     color: black !important;
+    background: white !important;
   }
   
-  /* Hide buttons in print */
+  /* Hide buttons and non-printable elements */
   .print-receipt button,
-  .no-print {
+  .print-receipt .no-print,
+  button.no-print {
     display: none !important;
+  }
+  
+  /* Status badge colors for print */
+  .print-receipt .bg-green-100,
+  .print-receipt .bg-green-500 {
+    background: #dcfce7 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .print-receipt .text-green-800,
+  .print-receipt .text-green-600 {
+    color: #166534 !important;
   }
   
   /* Remove page margins */
