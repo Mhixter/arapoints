@@ -1,0 +1,319 @@
+at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:27
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:27
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:28
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:28
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:28
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:28
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:28
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:28
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:28
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:28
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:28
+  requireStack: []
+
+Jan 1 2026 10:24:28
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:28
+  throw err;
+
+Jan 1 2026 10:24:28
+}
+
+Jan 1 2026 10:24:28
+  ^
+
+Jan 1 2026 10:24:28
+
+Jan 1 2026 10:24:28
+
+Jan 1 2026 10:24:28
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:28
+Node.js v22.21.1
+
+Jan 1 2026 10:24:28
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:29
+  requireStack: []
+
+Jan 1 2026 10:24:29
+  ^
+
+Jan 1 2026 10:24:29
+
+Jan 1 2026 10:24:29
+}
+
+Jan 1 2026 10:24:29
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:29
+
+Jan 1 2026 10:24:29
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:29
+Node.js v22.21.1
+
+Jan 1 2026 10:24:29
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:29
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:29
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:29
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:29
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:29
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:29
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:29
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:29
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:29
+  throw err;
+
+Jan 1 2026 10:24:30
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:30
+  throw err;
+
+Jan 1 2026 10:24:30
+  ^
+
+Jan 1 2026 10:24:30
+
+Jan 1 2026 10:24:30
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:30
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:30
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:30
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:30
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:30
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:30
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:30
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:30
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:30
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:30
+  requireStack: []
+
+Jan 1 2026 10:24:30
+}
+
+Jan 1 2026 10:24:30
+
+Jan 1 2026 10:24:30
+Node.js v22.21.1
+
+Jan 1 2026 10:24:32
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:32
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:32
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:32
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:32
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:32
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:32
+  requireStack: []
+
+Jan 1 2026 10:24:32
+}
+
+Jan 1 2026 10:24:32
+
+Jan 1 2026 10:24:32
+Node.js v22.21.1
+
+Jan 1 2026 10:24:32
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:32
+  throw err;
+
+Jan 1 2026 10:24:32
+  ^
+
+Jan 1 2026 10:24:32
+
+Jan 1 2026 10:24:32
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:32
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:32
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:32
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:34
+}
+
+Jan 1 2026 10:24:34
+
+Jan 1 2026 10:24:34
+Node.js v22.21.1
+
+Jan 1 2026 10:24:34
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:34
+  throw err;
+
+Jan 1 2026 10:24:34
+  ^
+
+Jan 1 2026 10:24:34
+
+Jan 1 2026 10:24:34
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:34
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:34
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:34
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+
+Jan 1 2026 10:24:34
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:34
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:34
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:34
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:34
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:34
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:34
+  requireStack: []
+
+Jan 1 2026 10:24:35
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+
+Jan 1 2026 10:24:35
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+
+Jan 1 2026 10:24:35
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+
+Jan 1 2026 10:24:35
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+
+Jan 1 2026 10:24:35
+    at node:internal/main/run_main_module:36:49 {
+
+Jan 1 2026 10:24:35
+  code: 'MODULE_NOT_FOUND',
+
+Jan 1 2026 10:24:35
+  requireStack: []
+
+Jan 1 2026 10:24:35
+}
+
+Jan 1 2026 10:24:35
+
+Jan 1 2026 10:24:35
+Node.js v22.21.1
+
+Jan 1 2026 10:24:35
+node:internal/modules/cjs/loader:1386
+
+Jan 1 2026 10:24:35
+  throw err;
+
+Jan 1 2026 10:24:35
+  ^
+
+Jan 1 2026 10:24:35
+
+Jan 1 2026 10:24:35
+Error: Cannot find module '/app/index.js'
+
+Jan 1 2026 10:24:35
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+
+Jan 1 2026 10:24:35
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+
+Jan 1 2026 10:24:35
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
