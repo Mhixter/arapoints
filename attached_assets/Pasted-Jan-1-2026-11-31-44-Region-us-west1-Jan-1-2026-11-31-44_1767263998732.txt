@@ -1,0 +1,168 @@
+Jan 1 2026 11:31:44
+[Region: us-west1]
+
+Jan 1 2026 11:31:44
+=========================
+
+Jan 1 2026 11:31:44
+Using Detected Dockerfile
+
+Jan 1 2026 11:31:44
+=========================
+
+Jan 1 2026 11:31:44
+
+
+Jan 1 2026 11:31:44
+context: z7c7-PFHR
+
+Jan 1 2026 11:31:44
+
+internal
+load build definition from Dockerfile
+0ms
+
+Jan 1 2026 11:31:44
+
+internal
+load metadata for docker.io/library/node:20-slim
+273ms
+
+Jan 1 2026 11:31:45
+
+internal
+load .dockerignore
+0ms
+
+Jan 1 2026 11:31:45
+
+1
+FROM docker.io/library/node:20-slim@sha256:a270640213033657548b7ed57852709a0d2ee3b277f902f912367216aa8e9520
+5ms
+
+Jan 1 2026 11:31:45
+
+internal
+load build context
+0ms
+
+Jan 1 2026 11:31:45
+
+3
+WORKDIR /app cached
+0ms
+
+Jan 1 2026 11:31:45
+
+2
+RUN apt-get update && apt-get install -y     gnupg     wget     ca-certificates     fonts-liberation     libasound2     libatk-bridge2.0-0     libatk1.0-0     libatspi2.0-0     libcups2     libdbus-1-3     libdrm2     libgbm1     libgtk-3-0     libnspr4     libnss3     libxcomposite1     libxdamage1     libxfixes3     libxkbcommon0     libxrandr2     xdg-utils     --no-install-recommends     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/googlechrome-linux-keyring.gpg     && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/googlechrome-linux-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list     && apt-get update     && apt-get install -y google-chrome-stable --no-install-recommends     && rm -rf /var/lib/apt/lists/* cached
+0ms
+
+Jan 1 2026 11:31:45
+
+4
+COPY Arapoint/package*.json ./
+52ms
+
+Jan 1 2026 11:31:45
+
+5
+RUN npm ci --legacy-peer-deps
+8s
+npm notice
+
+Jan 1 2026 11:31:45
+
+6
+COPY Arapoint/ .
+217ms
+
+Jan 1 2026 11:31:45
+
+7
+RUN npm run build
+6s
+⚡ Done in 78ms
+
+Jan 1 2026 11:32:02
+
+auth
+sharing credentials for production-us-west2.railway-registry.com
+0ms
+
+Jan 1 2026 11:32:04
+
+importing to docker
+12s
+
+Jan 1 2026 11:32:23
+Build time: 38.45 seconds
+
+Jan 1 2026 11:32:34
+ 
+
+Jan 1 2026 11:32:34
+====================
+Starting Healthcheck
+====================
+
+Jan 1 2026 11:32:34
+Path: /api/health
+
+Jan 1 2026 11:32:34
+Retry window: 5m0s
+
+Jan 1 2026 11:32:34
+ 
+
+Jan 1 2026 11:32:45
+Attempt #1 failed with service unavailable. Continuing to retry for 4m49s
+
+Jan 1 2026 11:32:56
+Attempt #2 failed with service unavailable. Continuing to retry for 4m38s
+
+Jan 1 2026 11:32:58
+Attempt #3 failed with service unavailable. Continuing to retry for 4m36s
+
+Jan 1 2026 11:33:02
+Attempt #4 failed with service unavailable. Continuing to retry for 4m32s
+
+Jan 1 2026 11:33:10
+Attempt #5 failed with service unavailable. Continuing to retry for 4m24s
+
+Jan 1 2026 11:33:26
+Attempt #6 failed with service unavailable. Continuing to retry for 4m8s
+
+Jan 1 2026 11:33:56
+Attempt #7 failed with service unavailable. Continuing to retry for 3m38s
+
+Jan 1 2026 11:34:26
+Attempt #8 failed with service unavailable. Continuing to retry for 3m8s
+
+Jan 1 2026 11:34:56
+Attempt #9 failed with service unavailable. Continuing to retry for 2m38s
+
+Jan 1 2026 11:35:26
+Attempt #10 failed with service unavailable. Continuing to retry for 2m8s
+
+Jan 1 2026 11:35:56
+Attempt #11 failed with service unavailable. Continuing to retry for 1m38s
+
+Jan 1 2026 11:36:26
+Attempt #12 failed with service unavailable. Continuing to retry for 1m8s
+
+Jan 1 2026 11:36:56
+Attempt #13 failed with service unavailable. Continuing to retry for 38s
+
+Jan 1 2026 11:37:26
+Attempt #14 failed with service unavailable. Continuing to retry for 8s
+
+Jan 1 2026 11:37:26
+ 
+
+Jan 1 2026 11:37:26
+1/1 replicas never became healthy!
+
+Jan 1 2026 11:37:26
+
+Healthcheck failed!
