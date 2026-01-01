@@ -1,0 +1,158 @@
+7
+RUN npm run build
+2s
+> rest-express@1.0.0 build
+> tsx script/build.ts
+building client...
+vite v7.1.12 building for production...
+transforming...
+✓ 1137 modules transformed.
+✗ Build failed in 1.65s
+[vite:asset] Could not load /app/attached_assets/generated_images/diverse_team_with_identity_verification_system.png (imported by client/src/pages/Home.tsx): ENOENT: no such file or directory, open '/app/attached_assets/generated_images/diverse_team_with_identity_verification_system.png'
+
+    at async open (node:internal/fs/promises:639:25)
+    at async Object.readFile (node:internal/fs/promises:1246:14)
+    at async fileToBuiltUrl (/app/node_modules/vite/dist/node/chunks/config.js:7526:18)
+    at async Object.handler (/app/node_modules/vite/dist/node/chunks/config.js:7420:17)
+    at async PluginDriver.hookFirstAndGetPlugin (/app/node_modules/rollup/dist/es/shared/node-entry.js:22308:28)
+    at async <anonymous> (/app/node_modules/rollup/dist/es/shared/node-entry.js:21308:33)
+    at async Queue.work (/app/node_modules/rollup/dist/es/shared/node-entry.js:22536:32) {
+  errno: -2,
+  code: 'PLUGIN_ERROR',
+  syscall: 'open',
+  path: '/app/attached_assets/generated_images/diverse_team_with_identity_verification_system.png',
+  pluginCode: 'ENOENT',
+
+  plugin: 'vite:asset',
+  hook: 'load',
+  watchFiles: [
+    '/app/client/index.html',
+    '/app/client/src/main.tsx',
+    '/app/package.json',
+    '/app/node_modules/react/jsx-runtime.js',
+    '/app/node_modules/react-dom/client.js',
+    '/app/client/src/App.tsx',
+    '/app/client/src/index.css',
+    '/app/node_modules/tailwindcss/index.css',
+    '/app/node_modules/tw-animate-css/dist/tw-animate.css',
+    '/app/client/src/hooks/use-toast.ts',
+    '/app/client/src/hooks/use-mobile.tsx',
+    '/app/client/src/contexts/SettingsContext.tsx',
+    '/app/client/src/pages/admin/AdminWhatsApp.tsx',
+    '/app/client/src/pages/admin/AdminCACServices.tsx',
+    '/app/client/src/pages/admin/AdminDashboard.tsx',
+    '/app/client/src/pages/admin/AdminUserManagement.tsx',
+    '/app/client/src/pages/admin/AdminAnalytics.tsx',
+    '/app/client/src/pages/admin/AdminVTUServices.tsx',
+    '/app/client/src/pages/admin/AdminRoles.tsx',
+    '/app/client/src/pages/admin/AdminEducationPins.tsx',
+    '/app/client/src/pages/admin/AdminBVNServices.tsx',
+    '/app/client/src/pages/admin/AdminA2CAgents.tsx',
+    '/app/client/src/pages/admin/AdminSettings.tsx',
+    '/app/client/src/pages/admin/AdminPricing.tsx',
+    '/app/client/src/pages/admin/AdminEducationAgents.tsx',
+    '/app/client/src/pages/admin/AdminIdentityServices.tsx',
+    '/app/client/src/pages/admin/AdminIdentityAgents.tsx',
+    '/app/client/src/pages/admin/AdminEducationServices.tsx',
+    '/app/client/src/pages/admin/AdminLogin.tsx',
+    '/app/client/src/pages/dashboard/FundWallet.tsx',
+    '/app/client/src/pages/dashboard/Notifications.tsx',
+    '/app/client/src/pages/dashboard/VTUServices.tsx',
+    '/app/client/src/pages/dashboard/EducationServices.tsx',
+    '/app/client/src/pages/dashboard/JAMBServices.tsx',
+    '/app/client/src/pages/dashboard/Settings.tsx',
+    '/app/client/src/pages/dashboard/CACServices.tsx',
+    '/app/client/src/pages/dashboard/DataServices.tsx',
+    '/app/client/src/pages/dashboard/Profile.tsx',
+    '/app/client/src/pages/dashboard/EducationVerification.tsx',
+    '/app/client/src/pages/dashboard/IdentityVerification.tsx',
+    '/app/client/src/pages/dashboard/BVNRetrieval.tsx',
+    '/app/client/src/pages/dashboard/identity/IdentityServiceRouter.tsx',
+    '/app/client/src/pages/dashboard/identity/IdentityAgentServices.tsx',
+    '/app/client/src/pages/dashboard/Chat.tsx',
+    '/app/client/src/pages/dashboard/VerificationHistory.tsx',
+    '/app/client/src/pages/dashboard/AirtimeServices.tsx',
+    '/app/client/src/pages/dashboard/Services.tsx',
+    '/app/client/src/pages/dashboard/BuyPINs.tsx',
+    '/app/client/src/pages/dashboard/PurchasePINs.tsx',
+    '/app/client/src/pages/dashboard/CableServices.tsx',
+    '/app/client/src/pages/dashboard/ElectricityServices.tsx',
+    '/app/client/src/pages/dashboard/AirtimeToCash.tsx',
+    '/app/client/src/pages/dashboard/SubscriptionServices.tsx',
+    '/app/client/src/pages/dashboard/Overview.tsx',
+    '/app/client/src/pages/Home.tsx',
+    '/app/client/src/pages/agent/IdentityAgentDashboard.tsx',
+    '/app/client/src/pages/agent/EducationAgentDashboard.tsx',
+    '/app/client/src/pages/agent/IdentityAgentLogin.tsx',
+    '/app/client/src/pages/agent/A2CAgentLogin.tsx',
+    '/app/client/src/pages/agent/CACAgentDashboard.tsx',
+    '/app/client/src/pages/agent/A2CAgentDashboard.tsx',
+    '/app/client/src/pages/agent/CACAgentLogin.tsx',
+    '/app/client/src/pages/agent/EducationAgentLogin.tsx',
+    '/app/client/src/pages/auth/Signup.tsx',
+    '/app/client/src/pages/auth/ForgotPassword.tsx',
+    '/app/client/src/pages/auth/Login.tsx',
+    '/app/client/src/pages/not-found.tsx',
+    '/app/client/src/components/ThemeProvider.tsx',
+    '/app/client/src/components/layout/AdminCRUDLayout.tsx',
+    '/app/client/src/components/layout/MainLayout.tsx',
+    '/app/client/src/components/layout/AdminDashboardLayout.tsx',
+    '/app/client/src/components/layout/DashboardLayout.tsx',
+    '/app/client/src/components/admin/ResponsiveServiceTable.tsx',
+    '/app/client/src/components/dashboard/FundWalletModal.tsx',
+    '/app/client/src/components/ui/aspect-ratio.tsx',
+    '/app/client/src/components/ui/tabs.tsx',
+    '/app/client/src/components/ui/toaster.tsx',
+    '/app/client/src/components/ui/progress.tsx',
+    '/app/client/src/components/ui/textarea.tsx',
+    '/app/client/src/components/ui/button.tsx',
+    '/app/client/src/components/ui/carousel.tsx',
+    '/app/client/src/components/ui/alert-dialog.tsx',
+    '/app/client/src/components/ui/accordion.tsx',
+    '/app/client/src/components/ui/resizable.tsx',
+    '/app/client/src/components/ui/form.tsx',
+    '/app/client/src/components/ui/collapsible.tsx',
+    '/app/client/src/components/ui/dropdown-menu.tsx',
+    '/app/client/src/components/ui/spinner.tsx',
+    '/app/client/src/components/ui/pagination.tsx',
+    '/app/client/src/components/ui/toggle.tsx',
+    '/app/client/src/components/ui/toast.tsx',
+    '/app/client/src/components/ui/label.tsx',
+    '/app/client/src/components/ui/sonner.tsx',
+    '/app/client/src/components/ui/skeleton.tsx',
+    '/app/client/src/components/ui/breadcrumb.tsx',
+    '/app/client/src/components/ui/button-group.tsx',
+    '/app/client/src/components/ui/sidebar.tsx',
+    '/app/client/src/components/ui/calendar.tsx',
+    '/app/client/src/components/ui/tooltip.tsx',
+    '/app/client/src/components/ui/menubar.tsx',
+    ... 1089 more items
+  ]
+}
+
+Jan 1 2026 10:27:57
+Dockerfile:47
+
+Jan 1 2026 10:27:57
+-------------------
+
+Jan 1 2026 10:27:57
+45 |
+
+Jan 1 2026 10:27:57
+46 |     # Build the application
+
+Jan 1 2026 10:27:57
+47 | >>> RUN npm run build
+
+Jan 1 2026 10:27:57
+48 |
+
+Jan 1 2026 10:27:57
+49 |     # Remove dev dependencies after build
+
+Jan 1 2026 10:27:57
+-------------------
+
+Jan 1 2026 10:27:57
+ERROR: failed to build: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
