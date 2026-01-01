@@ -1,0 +1,241 @@
+daring-alignment
+
+
+production
+Architecture
+Observability
+Logs
+Settings
+
+30 days or $4.97 left
+
+
+
+
+
+Filter and search logs
+
+1/1/26, 1:33 PM - 1/1/26, 1:33 PM
+
+
+[2026-01-01T12:32:56.890Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:57.392Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:57.891Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:58.390Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:58.891Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:59.391Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:32:59.890Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:00.390Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:00.890Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:01.393Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:01.891Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:02.392Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:02.893Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:03.396Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:03.893Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:04.393Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:04.893Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:05.393Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:05.895Z] ERROR: Error polling database for jobs {"error":""}
+Starting Container
+[2026-01-01T12:33:06.394Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:06.894Z] ERROR: Error polling database for jobs {"error":""}
+    at async Object.query (/app/node_modules/drizzle-kit/bin.cjs:80601:26)
+    at async fromDatabase2 (/app/node_modules/drizzle-kit/bin.cjs:19253:25) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED fd12:626d:4bf4:1:0:102:5ce6:8966:5432
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: 'fd12:626d:4bf4:1:0:102:5ce6:8966',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 10.230.137.102:5432
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/app/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+AggregateError [ECONNREFUSED]: 
+    at /app/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+        at createConnectionError (node:net:1652:14)
+        at afterConnectMultiple (node:net:1682:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '10.230.137.102',
+      port: 5432
+    }
+  ]
+}
+[2026-01-01T12:33:07.395Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:07.893Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:08.395Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:08.897Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:09.396Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:09.897Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:10.398Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:10.897Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:11.397Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:11.898Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:12.399Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:12.898Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:13.397Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:13.898Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:14.398Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:14.898Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:15.400Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:15.898Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:16.398Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:16.899Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:17.402Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:17.901Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:18.402Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:18.901Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:19.401Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:19.903Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:20.403Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:20.902Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:21.402Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:21.904Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:22.416Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:22.916Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:23.416Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:23.920Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:24.419Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:24.918Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:25.418Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:25.919Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:26.420Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:26.919Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:27.421Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:27.920Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:28.420Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:28.922Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:29.420Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:29.921Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:30.422Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:30.924Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:31.423Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:31.923Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:32.423Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:32.923Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:33.424Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:33.925Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:34.426Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:34.926Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:35.429Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:35.927Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:36.428Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:36.930Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:37.430Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:37.929Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:38.429Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:38.928Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:39.429Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:39.932Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:40.429Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:40.931Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:41.431Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:41.931Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:42.432Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:42.931Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:43.431Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:43.936Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:44.435Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:44.935Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:45.433Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:45.933Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:46.432Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:46.936Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:47.435Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:47.935Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:48.435Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:48.938Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:49.437Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:49.937Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:50.437Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:50.937Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:51.440Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:51.939Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:52.439Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:52.939Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:53.441Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:53.941Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:54.440Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:54.941Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:55.444Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:55.943Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:56.444Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:56.944Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:57.445Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:57.944Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:58.444Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:58.944Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:59.444Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:33:59.946Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:00.447Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:00.947Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:01.449Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:01.950Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:02.449Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:02.949Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:03.451Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:03.948Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:04.451Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:04.950Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:05.451Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:05.951Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:06.454Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:06.953Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:07.454Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:07.953Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:08.455Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:08.954Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:09.456Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:09.955Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:10.457Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:10.957Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:11.457Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:11.955Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:12.456Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:12.960Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:13.457Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:13.956Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:14.457Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:14.958Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:15.458Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:15.959Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:16.459Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:16.959Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:17.460Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:17.960Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:18.461Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:18.963Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:19.464Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:19.961Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:20.461Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:20.962Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:21.464Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:21.963Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:22.464Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:22.963Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:23.464Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:23.966Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:24.465Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:24.964Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:25.465Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:25.966Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:26.467Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:26.967Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:27.468Z] ERROR: Error polling database for jobs {"error":""}
+[2026-01-01T12:34:27.968Z] ERROR: Error polling database for jobs {"error":""}
+
+
+Log Explorer | Railway
+100MB
